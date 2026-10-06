@@ -1,0 +1,3 @@
+[submodule "frontend-web"]
+	path = frontend-web
+	url = https://github.com/DrDingus117/Gamespulse-Capstone-Web-Project
