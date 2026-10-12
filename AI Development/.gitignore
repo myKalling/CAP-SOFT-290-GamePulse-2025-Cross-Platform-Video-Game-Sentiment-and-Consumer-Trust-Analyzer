@@ -1,0 +1,17 @@
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# Python environments and bytecode
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+
+# Regenerable pipeline artifacts
+/data/raw/
+/output/
+
+# Raw source data (files exceed GitHub's 100 MB limit)
+/Data CSVs/
