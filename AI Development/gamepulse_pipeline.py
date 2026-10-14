@@ -27,8 +27,10 @@ Supplemental data already in ./Data CSVs is still included:
   steam 2025.csv                 <- additional Steam reviews and games
   xbox-games-2025.csv            <- Xbox game catalog and ratings
 
-Review sentiment is scored from review text with VADER. Its compound score is
-mapped from -1..1 to 0..100, then grouped into five 20-point rating categories.
+Review sentiment is scored clause by clause with VADER (contrast words such as
+"but" start a new clause). Positive and negative clauses offset each other, so
+mixed reviews land mid-scale; the 0-100 score is grouped into five 20-point
+rating categories and mixed reviews are flagged in sentiment_mixed.
 sentiment_label remains the reviewer's Steam vote when available.
 
 Run:  python gamepulse_pipeline.py
@@ -737,18 +739,73 @@ def sentiment_rating(score):
     return min(int(score // 20) + 1, 5)
 
 
+GAMING_LEXICON = {
+    "goated": 3.0, "banger": 2.5, "addictive": 1.5, "polished": 2.0, "immersive": 2.0,
+    "mid": -1.0, "buggy": -2.0, "bugs": -1.5, "bug": -1.5, "crash": -2.0,
+    "crashes": -2.0, "crashing": -2.0, "stutter": -1.5, "stuttering": -1.5,
+    "laggy": -2.0, "lag": -1.5, "p2w": -2.5, "pay2win": -2.5, "grindy": -1.5,
+    "grind": -1.0, "unoptimized": -2.0, "overpriced": -2.0, "cheaters": -2.5,
+    "hackers": -2.0, "aimbot": -2.5, "refund": -1.5, "refunded": -2.0,
+    "microtransactions": -1.5, "repetitive": -1.5, "unplayable": -3.0,
+}
+# Contrast words start a new clause so each side of "great, but ..." is scored alone
+SEGMENT_SPLIT = re.compile(
+    r"[.!?;\n]+|,?\s+\b(?:but|however|although|though|yet|except|unfortunately|"
+    r"sadly|despite|whereas)\b",
+    re.IGNORECASE,
+)
+NEUTRAL_BAND = 0.05      # |compound| below this is treated as neutral
+MAX_SEGMENTS = 60        # cap work on very long reviews
+MIXED_MIN_SHARE = 0.25   # minority polarity must carry >=25% of opinion to be "mixed"
+
+
+def score_review_text(text, analyzer):
+    """Score a review clause by clause so opposing opinions offset each other.
+
+    Whole-text VADER saturates toward +/-1 on long reviews, so a review with
+    real praise and real complaints still reads as extreme. Here every clause is
+    scored on its own; positive and negative strength are summed separately and
+    the final score is the average opinion strength. Balanced praise/complaints
+    land near 50, one-sided reviews stay near the ends.
+    Returns (score_0_100, positive_share, negative_share, is_mixed).
+    """
+    segments = [s.strip() for s in SEGMENT_SPLIT.split(text or "") if s and s.strip()]
+    pos = neg = 0.0
+    opinionated = 0
+    for seg in segments[:MAX_SEGMENTS]:
+        c = analyzer.polarity_scores(seg)["compound"]
+        if c >= NEUTRAL_BAND:
+            pos += c
+        elif c <= -NEUTRAL_BAND:
+            neg += -c
+        else:
+            continue
+        opinionated += 1
+    if opinionated == 0:
+        return 50.0, 0.0, 0.0, False
+    avg_opinion = (pos - neg) / opinionated          # -1..1
+    score = 50 + 50 * max(-1.0, min(1.0, avg_opinion * 1.25))
+    total = pos + neg
+    pos_share, neg_share = pos / total, neg / total
+    return round(score, 1), round(pos_share, 2), round(neg_share, 2), \
+        min(pos_share, neg_share) >= MIXED_MIN_SHARE
+
+
 def add_sentiment_ratings(reviews):
-    """Add text-derived VADER scores and five-band ratings to review rows."""
+    """Add clause-level VADER scores, mixed-sentiment flag and five-band ratings."""
     analyzer = SentimentIntensityAnalyzer()
-    compound = reviews["review_text"].fillna("").map(
-        lambda text: analyzer.polarity_scores(str(text))["compound"]
-    )
-    score = ((compound + 1) * 50).clip(0, 100)
+    analyzer.lexicon.update(GAMING_LEXICON)
+    results = [score_review_text(str(t), analyzer)
+               for t in reviews["review_text"].fillna("")]
+    scored = pd.DataFrame(results, index=reviews.index,
+                          columns=["score", "pos_share", "neg_share", "mixed"])
 
     rated = reviews.copy()
-    rounded_score = score.round(1)
-    rated["sentiment_score_100"] = rounded_score
-    rated["sentiment_rating"] = rounded_score.map(sentiment_rating).astype("int8")
+    rated["sentiment_score_100"] = scored["score"]
+    rated["sentiment_positive_share"] = scored["pos_share"]
+    rated["sentiment_negative_share"] = scored["neg_share"]
+    rated["sentiment_mixed"] = scored["mixed"].astype(bool)
+    rated["sentiment_rating"] = scored["score"].map(sentiment_rating).astype("int8")
     rated["sentiment_category"] = rated["sentiment_rating"].map({
         1: "Very Poor",
         2: "Poor",
@@ -842,6 +899,8 @@ def build_game_summary(reviews, games):
             lambda s: round((s <= 2).mean() * 100, 1)),
         "pct_good_or_very_good": grouped["sentiment_rating"].apply(
             lambda s: round((s >= 4).mean() * 100, 1)),
+        "pct_mixed_sentiment": grouped["sentiment_mixed"].apply(
+            lambda s: round(s.mean() * 100, 1)),
         "pct_vote_text_mismatch": grouped["vote_text_mismatch"].apply(
             lambda s: round(s.mean() * 100, 1)),
         "pct_short_playtime": grouped["short_playtime_flag"].apply(
@@ -965,7 +1024,8 @@ def main():
         "steam_categories", "steam_platforms",
         "recommendation_id", "review_pull", "review_date", "review_month",
         "review_text", "word_count", "sentiment_label", "sentiment_score_100",
-        "sentiment_rating", "sentiment_category", "vote_text_mismatch",
+        "sentiment_rating", "sentiment_category", "sentiment_mixed",
+        "sentiment_positive_share", "sentiment_negative_share", "vote_text_mismatch",
         "votes_up", "votes_funny", "comment_count", "weighted_vote_score",
         "playtime_at_review_hrs", "playtime_total_hrs", "short_playtime_flag",
         "steam_purchase", "received_for_free", "early_access",
