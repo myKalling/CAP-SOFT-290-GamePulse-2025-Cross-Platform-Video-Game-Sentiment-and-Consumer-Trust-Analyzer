@@ -1,6 +1,0 @@
-[submodule "frontend-web"]
-	path = frontend-web
-	url = https://github.com/DrDingus117/Gamespulse-Capstone-Web-Project
-[submodule "front-end-mobile"]
-	path = front-end-mobile
-	url = https://github.com/avaortiz1507-boop/Gamespulse-Capstone-Web-Project-main
