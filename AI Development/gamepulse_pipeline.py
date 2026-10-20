@@ -23,7 +23,7 @@ Outputs (in ./output)
   gamepulse_game_summary.csv     <- one row per reviewed game: sentiment metrics
   cleaning_log.csv               <- how many rows each cleaning step removed
 
-Supplemental data already in ./Data CSVs is still included:
+Supplemental data in ./Data CSVs is included when present:
   steam 2025.csv                 <- additional Steam reviews and games
   xbox-games-2025.csv            <- Xbox game catalog and ratings
 
@@ -306,6 +306,14 @@ def fetch_rawg_detail(rawg_id):
     return get_json(f"https://api.rawg.io/api/games/{rawg_id}", params={"key": RAWG_KEY})
 
 
+def fetch_rawg_development_team(rawg_id):
+    """Return RAWG's individual development-team credits for a game."""
+    return get_json(
+        f"https://api.rawg.io/api/games/{rawg_id}/development-team",
+        params={"key": RAWG_KEY},
+    )
+
+
 def fetch_steam_appid(rawg_id):
     """RAWG lists store links per game; pull the Steam app id out of the URL."""
     data = get_json(f"https://api.rawg.io/api/games/{rawg_id}/stores",
@@ -509,7 +517,12 @@ def parse_source_bool(value):
 
 
 def load_supplemental_steam_data():
-    """Load and normalize the supplied Steam reviews and game catalog."""
+    """Load supplied Steam reviews and catalog, or continue when the file is absent."""
+    source_path = DATA_DIR / "steam 2025.csv"
+    if not source_path.exists():
+        print("      ! steam 2025.csv not found; continuing without supplemental Steam data.")
+        return pd.DataFrame(), pd.DataFrame(columns=["appid", "game_name"])
+
     required = {
         "appid", "recommendation_id", "review", "voted_up", "votes_up",
         "votes_funny", "timestamp_created", "steam_purchase",
@@ -517,7 +530,7 @@ def load_supplemental_steam_data():
         "playtime_at_review",
     }
     source = pd.read_csv(
-        DATA_DIR / "steam 2025.csv",
+        source_path,
         usecols=required | {"game_name"},
         low_memory=False,
     )
@@ -703,6 +716,218 @@ def merge_all_games(base, igdb, rawg):
         games["steam_pct_positive"] = (pos / total * 100).round(1)
     games["steam_appid"] = pd.to_numeric(games["steam_appid"], errors="coerce").astype("Int64")
     return games.drop(columns=["name_key"])
+
+
+# --------------------------------------------------------------------------
+# Developer backfill: every game should end up with a developer name
+# --------------------------------------------------------------------------
+EDITION_WORDS = (
+    r"(?:game of the year|goty|definitive|complete|deluxe|ultimate|gold|standard|"
+    r"remastered|remake|enhanced|anniversary|director'?s cut|special|collector'?s)"
+)
+EDITION_SUFFIX = re.compile(rf"[\s:–—-]+(?:the\s+)?(?:{EDITION_WORDS}\s*)+(?:edition|version|cut|bundle)?\s*$", re.I)
+TRAILING_BRACKET = re.compile(r"\s*[\(\[][^\)\]]*[\)\]]\s*$")
+TRADEMARKS = re.compile(r"[™®©]")
+
+
+def title_variations(title):
+    """Likely alternate spellings of a game title, most specific first."""
+    base = unicodedata.normalize("NFKC", TRADEMARKS.sub("", str(title or ""))).strip()
+    variants = [base]
+    stripped = base
+    for _ in range(3):
+        new = EDITION_SUFFIX.sub("", TRAILING_BRACKET.sub("", stripped)).strip()
+        if new == stripped:
+            break
+        stripped = new
+        variants.append(stripped)
+    for v in list(variants):
+        variants.append(re.sub(r"^(?:the|a|an)\s+", "", v, flags=re.I))
+        variants.append(re.sub(r"\s*[:–—]\s+.*$|\s+-\s+.*$", "", v))   # drop subtitle
+        variants.append(v.replace("&", "and"))
+    seen, out = set(), []
+    for v in variants:
+        key = name_key(v)
+        if len(key) >= 3 and key not in seen:
+            seen.add(key)
+            out.append(v.strip())
+    return out
+
+
+def is_blank(value):
+    return pd.isna(value) or str(value).strip().lower() in ("", "nan", "none", "[]")
+
+
+def search_rawg_developers(title, year=None):
+    """Search RAWG by every title variation; return developer names or ''."""
+    wanted = {name_key(x) for x in title_variations(title)}
+    for variant in title_variations(title):
+        results = cached(f"rawg_search_{name_key(variant)}", lambda v=variant: get_json(
+            "https://api.rawg.io/api/games",
+            params={"key": RAWG_KEY, "search": v, "search_precise": "true", "page_size": 10}))
+        for hit in (results or {}).get("results", []):
+            if name_key(hit.get("name")) not in wanted:
+                continue
+            detail = cached(f"rawg_detail_{hit['id']}", fetch_rawg_detail, hit["id"])
+            names = join_names((detail or {}).get("developers"))
+            if names:
+                return names
+    return ""
+
+
+def format_rawg_creator_credits(credits):
+    """Format credited development-team members with their supplied roles."""
+    if isinstance(credits, dict):
+        credits = credits.get("results", [])
+    by_name = {}
+    for credit in credits or []:
+        if isinstance(credit, str):
+            name, positions = credit.strip(), []
+        elif isinstance(credit, dict):
+            name = str(credit.get("name") or "").strip()
+            positions = (
+                credit.get("positions")
+                or credit.get("roles")
+                or credit.get("position")
+                or []
+            )
+            if isinstance(positions, (str, dict)):
+                positions = [positions]
+            positions = [
+                str(position.get("name") or position.get("title") or "").strip()
+                if isinstance(position, dict) else str(position).strip()
+                for position in positions
+            ]
+            positions = [position for position in positions if position]
+        else:
+            continue
+        if name:
+            entry = by_name.setdefault(name_key(name), [name, []])
+            entry[1].extend(role for role in positions if role not in entry[1])
+    formatted = []
+    for name, positions in by_name.values():
+        roles = " / ".join(positions)
+        formatted.append(f"{name} ({roles})" if roles else name)
+    return "; ".join(formatted)
+
+
+def search_rawg_creator_credits(title):
+    """Find matching RAWG game credits when no developer studio is listed."""
+    wanted = {name_key(x) for x in title_variations(title)}
+    for variant in title_variations(title):
+        results = cached(f"rawg_search_{name_key(variant)}", lambda v=variant: get_json(
+            "https://api.rawg.io/api/games",
+            params={"key": RAWG_KEY, "search": v, "search_precise": "true", "page_size": 10}))
+        for hit in (results or {}).get("results", []):
+            if name_key(hit.get("name")) != name_key(title) and name_key(hit.get("name")) not in wanted:
+                continue
+            credits = cached(
+                f"rawg_development_team_{hit['id']}",
+                fetch_rawg_development_team,
+                hit["id"],
+            )
+            names = format_rawg_creator_credits(credits)
+            if names:
+                return names
+    return ""
+
+
+def igdb_search_developers(title, token):
+    """Search IGDB by title variations; return developer company names or ''."""
+    for variant in title_variations(title):
+        safe = variant.replace("\\", " ").replace('"', " ")
+        body = (f'search "{safe}"; fields name,involved_companies.company.name,'
+                f'involved_companies.developer; limit 10;')
+        hits = cached(f"igdb_search_{name_key(variant)}", lambda b=body: get_json(
+            "https://api.igdb.com/v4/games", method="post", data=b,
+            headers={"Client-ID": IGDB_CLIENT_ID, "Authorization": f"Bearer {token}"}))
+        wanted = {name_key(x) for x in title_variations(title)}
+        for hit in hits or []:
+            if name_key(hit.get("name")) not in wanted:
+                continue
+            devs = [ic["company"]["name"] for ic in hit.get("involved_companies") or []
+                    if ic.get("developer") and (ic.get("company") or {}).get("name")]
+            if devs:
+                return "; ".join(devs)
+    return ""
+
+
+def clean_developer_names(value):
+    """Normalise separators and drop duplicate developer names ('A, B; a' -> 'A; B')."""
+    if is_blank(value):
+        return ""
+    parts = re.split(r"\s*[;|]\s*|\s*,\s*(?!\s*(?:inc|llc|ltd|co)\b)", str(value), flags=re.I)
+    seen, out = set(), []
+    for p in parts:
+        p = p.strip()
+        if p and name_key(p) not in seen:
+            seen.add(name_key(p))
+            out.append(p)
+    return "; ".join(out)
+
+
+def fill_missing_developers(games):
+    """Backfill blank developers: Steam -> RAWG -> IGDB, then RAWG team credits.
+
+    Games still blank afterwards are written to output/games_missing_developer.csv.
+    """
+    games = games.copy()
+    if "developers" not in games.columns:
+        games["developers"] = pd.NA
+    games["developers"] = games["developers"].map(clean_developer_names)
+    missing = games.index[games["developers"].eq("")]
+    print(f"      {len(missing)} games missing a developer - searching sources...")
+    token = igdb_token() if IGDB_CLIENT_ID and IGDB_CLIENT_SECRET else None
+    games["developer_source"] = games["developers"].map(lambda v: "catalog" if v else "")
+
+    for i, idx in enumerate(missing, 1):
+        row = games.loc[idx]
+        found, source = "", ""
+        appid = pd.to_numeric(row.get("steam_appid"), errors="coerce")
+        rawg_id = pd.to_numeric(row.get("rawg_id"), errors="coerce")
+        if pd.notna(appid):
+            details = cached(f"steam_details_v2_{int(appid)}", fetch_steam_details, int(appid))
+            found, source = clean_developer_names((details or {}).get("developers")), "steam"
+        if not found and RAWG_KEY and pd.notna(rawg_id):
+            details = cached(
+                f"rawg_detail_{int(rawg_id)}",
+                fetch_rawg_detail,
+                int(rawg_id),
+            )
+            found = clean_developer_names(join_names((details or {}).get("developers")))
+            if found:
+                source = "rawg_detail"
+        if not found and token:
+            found, source = clean_developer_names(igdb_search_developers(row["game_name"], token)), "igdb_search"
+        if not found and RAWG_KEY and pd.isna(rawg_id):
+            found = clean_developer_names(search_rawg_developers(row["game_name"]))
+            if found:
+                source = "rawg_search"
+        if not found and RAWG_KEY:
+            if pd.notna(rawg_id):
+                credits = cached(
+                    f"rawg_development_team_{int(rawg_id)}",
+                    fetch_rawg_development_team,
+                    int(rawg_id),
+                )
+                found = clean_developer_names(format_rawg_creator_credits(credits))
+            else:
+                found = clean_developer_names(search_rawg_creator_credits(row["game_name"]))
+            if found:
+                source = "rawg_development_team"
+        if found:
+            games.at[idx, "developers"] = found
+            games.at[idx, "developer_source"] = source
+        if i % 100 == 0:
+            print(f"      developer lookup {i}/{len(missing)}")
+
+    still = games[games["developers"].eq("")]
+    if not still.empty:
+        cols = [c for c in ("steam_appid", "game_name", "platform", "data_source") if c in still.columns]
+        still[cols].to_csv(OUT_DIR / "games_missing_developer.csv", index=False, encoding="utf-8-sig")
+        print(f"      ! {len(still)} games still have no developer "
+              f"(see output/games_missing_developer.csv)")
+    return games
 
 
 # --------------------------------------------------------------------------
@@ -977,7 +1202,7 @@ def main():
 
     supplemental_reviews, steam_catalog = load_supplemental_steam_data()
     base = supplemental_game_rows(selected, steam_catalog)
-    games_output = merge_all_games(base, igdb, rawg)
+    games_output = fill_missing_developers(merge_all_games(base, igdb, rawg))
 
     # ---- 5. reviews + cleaning --------------------------------------------
     print("[5/6] Pulling Steam reviews (recent + most helpful) and cleaning...")
@@ -1004,7 +1229,7 @@ def main():
     print("[6/6] Writing outputs...")
     game_cols = [
         "steam_appid", "game_name", "game_type", "release_date", "price_usd", "genres",
-        "developers", "publishers", "steam_pct_positive", "total_reviews",
+        "developers", "developer_source", "publishers", "steam_pct_positive", "total_reviews",
         "review_score_desc", "steam_metacritic", "metacritic", "rawg_rating",
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",
         "igdb_themes", "igdb_game_modes", "igdb_perspectives", "igdb_platforms",
@@ -1017,7 +1242,7 @@ def main():
                               "review_score_desc": "steam_review_score_desc"})
     review_cols = [
         "steam_appid", "game_name", "game_type", "release_date", "genres", "price_usd",
-        "developers", "publishers", "steam_total_reviews", "steam_pct_positive",
+        "developers", "developer_source", "publishers", "steam_total_reviews", "steam_pct_positive",
         "steam_review_score_desc", "steam_metacritic", "metacritic", "rawg_rating",
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",
         "igdb_themes", "igdb_game_modes", "igdb_perspectives", "igdb_platforms",
