@@ -1,31 +1,43 @@
-class Developer (
+from datetime import date
+from decimal import Decimal
+
+
+class Developer:
     DevID: int
-    Developer: string
+    Developer: str
 
-)
 
-class Platform (
+class Platform:
     PlatformID: int
-    Platform: string
-)
+    Platform: str
 
-class Game (
+
+class Game:
     GameID: int
-    Title: string
+    Title: str
     DevID: int
-)
 
-class Review (
+
+class Review:
     ReviewID: int
     GamePlatformsID: int
-    Review: string
-    Sentiment: string
-)
+    Review: str
+    Sentiment: int
 
-class GamePlatforms (
+
+class GamePlatforms:
     GamePlatformsID: int
     GameID: int
     PlatformID: int
     ReleaseDate: date
-    Price: decimal
-)
+    Price: Decimal
+
+
+class Genre:
+    GenreID: int
+    Genre: str
+
+
+class GameGenres:
+    GameID: int
+    GenreID: int
