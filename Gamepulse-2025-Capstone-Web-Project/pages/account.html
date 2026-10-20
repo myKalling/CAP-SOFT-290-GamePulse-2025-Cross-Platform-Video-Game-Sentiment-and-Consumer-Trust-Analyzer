@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Sign In | GamesPulse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="../Gamespulse-Capstone-Mobile-Project-main/output.css" rel="stylesheet">
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif;" class="bg-gray-900 text-gray-200 leading-relaxed">
+
+  <header class="bg-gray-800 border-b border-gray-700">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 p-4">
+      <a href="home.html" aria-label="GamesPulse home" class="text-2xl font-bold tracking-wide text-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-300">Games<span class="text-sky-300">Pulse</span></a>
+      <nav id="nav-list" aria-label="Main">
+        <ul class="flex flex-wrap gap-3">
+          <li><a href="about.html" class="inline-block bg-gray-700 hover:bg-gray-600 text-gray-50 font-bold px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">About</a></li>
+          <li><a href="credits.html" class="inline-block bg-gray-700 hover:bg-gray-600 text-gray-50 font-bold px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">Credits</a></li>
+          <li><a href="account.html" aria-current="page" class="inline-block bg-indigo-500 hover:bg-indigo-400 text-white font-bold underline px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">Sign In</a></li>
+          <li><a href="games.html" class="inline-block bg-gray-700 hover:bg-gray-600 text-gray-50 font-bold px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">Games</a></li>
+          <li><a href="home.html" class="inline-block bg-gray-700 hover:bg-gray-600 text-gray-50 font-bold px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">Home</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto p-6 space-y-6">
+    <h1 id="page-title" class="text-4xl font-bold text-gray-50">Sign Up</h1>
+
+    <!-- Shown when signed out -->
+    <section id="signed-out" class="space-y-4">
+      <div class="flex" role="group" aria-label="Choose sign up or log in">
+        <button type="button" id="tab-signup" aria-pressed="true"
+                class="flex-1 px-4 py-2.5 font-bold bg-gray-700 text-gray-100 aria-pressed:bg-indigo-500 aria-pressed:text-white focus:outline-none focus:ring-2 focus:ring-sky-300">Sign Up</button>
+        <button type="button" id="tab-login" aria-pressed="false"
+                class="flex-1 px-4 py-2.5 font-bold bg-gray-700 text-gray-100 aria-pressed:bg-indigo-500 aria-pressed:text-white focus:outline-none focus:ring-2 focus:ring-sky-300">Log In</button>
+      </div>
+
+      <form id="accountForm" class="space-y-5 bg-gray-800/60 border-2 border-gray-700 p-6">
+        <div id="name-row">
+          <label for="fname" class="block mb-1.5 text-sm font-bold text-gray-100">Account name</label>
+          <input type="text" id="fname" name="fname" required autocomplete="username"
+                 class="w-full bg-gray-900 border border-gray-600 text-gray-100 px-4 py-3 hover:border-gray-500 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-300/40">
+        </div>
+        <div>
+          <label for="email" class="block mb-1.5 text-sm font-bold text-gray-100">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="email"
+                 class="w-full bg-gray-900 border border-gray-600 text-gray-100 px-4 py-3 hover:border-gray-500 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-300/40">
+        </div>
+        <div>
+          <label for="ps" class="block mb-1.5 text-sm font-bold text-gray-100">Password</label>
+          <input type="password" id="ps" name="psw" required minlength="6" autocomplete="new-password"
+                 class="w-full bg-gray-900 border border-gray-600 text-gray-100 px-4 py-3 hover:border-gray-500 focus:outline-none focus:border-sky-300 focus:ring-2 focus:ring-sky-300/40">
+          <p id="hint" class="mt-1.5 text-sm text-gray-300">At least 6 characters.</p>
+        </div>
+
+        <button type="submit" id="submit-btn"
+                class="bg-indigo-500 hover:bg-indigo-400 active:bg-indigo-600 disabled:opacity-60 text-white font-bold px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-300">Create Account</button>
+
+        <p id="message" class="text-sm font-bold min-h-5" role="alert" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <!-- Shown when signed in -->
+    <section id="signed-in" class="hidden space-y-4 bg-gray-800/60 border-2 border-gray-700 p-6">
+      <p>Signed in as <strong id="who" class="text-gray-50"></strong></p>
+      <button type="button" id="logout-btn"
+              class="bg-gray-700 hover:bg-gray-600 text-white font-bold px-5 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-300">Log Out</button>
+    </section>
+  </main>
+
+  <script type="module" src="auth.js"></script>
+</body>
+</html>
