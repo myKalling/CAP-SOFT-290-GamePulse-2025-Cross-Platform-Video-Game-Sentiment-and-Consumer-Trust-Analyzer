@@ -758,7 +758,7 @@ def is_blank(value):
     return pd.isna(value) or str(value).strip().lower() in ("", "nan", "none", "[]")
 
 
-def search_rawg_developers(title, year=None):
+def search_rawg_developers(title):
     """Search RAWG by every title variation; return developer names or ''."""
     wanted = {name_key(x) for x in title_variations(title)}
     for variant in title_variations(title):
@@ -819,7 +819,7 @@ def search_rawg_creator_credits(title):
             "https://api.rawg.io/api/games",
             params={"key": RAWG_KEY, "search": v, "search_precise": "true", "page_size": 10}))
         for hit in (results or {}).get("results", []):
-            if name_key(hit.get("name")) != name_key(title) and name_key(hit.get("name")) not in wanted:
+            if name_key(hit.get("name")) not in wanted:
                 continue
             credits = cached(
                 f"rawg_development_team_{hit['id']}",
