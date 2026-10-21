@@ -19,7 +19,8 @@ New acquired data (saved into ./Data CSVs so it can be reused / inspected)
 
 Outputs (in ./output)
   gamepulse_reviews_clean.csv    <- one row per review, rich game info attached
-  gamepulse_games_clean.csv      <- all games (Steam, Xbox, IGDB, RAWG) enriched
+  gamepulse_games_clean.csv      <- all games (Steam, Xbox, IGDB, RAWG) enriched; every
+                                    game gets a developer and one 0/1 column per genre
   gamepulse_game_summary.csv     <- one row per reviewed game: sentiment metrics
   cleaning_log.csv               <- how many rows each cleaning step removed
 
@@ -758,20 +759,41 @@ def is_blank(value):
     return pd.isna(value) or str(value).strip().lower() in ("", "nan", "none", "[]")
 
 
-def search_rawg_developers(title):
-    """Search RAWG by every title variation; return developer names or ''."""
-    wanted = {name_key(x) for x in title_variations(title)}
-    for variant in title_variations(title):
+def rawg_title_matches(title):
+    """Yield RAWG search hits whose name matches any variation of the title."""
+    variations = title_variations(title)
+    wanted = {name_key(x) for x in variations}
+    for variant in variations:
         results = cached(f"rawg_search_{name_key(variant)}", lambda v=variant: get_json(
             "https://api.rawg.io/api/games",
             params={"key": RAWG_KEY, "search": v, "search_precise": "true", "page_size": 10}))
         for hit in (results or {}).get("results", []):
-            if name_key(hit.get("name")) not in wanted:
-                continue
-            detail = cached(f"rawg_detail_{hit['id']}", fetch_rawg_detail, hit["id"])
-            names = join_names((detail or {}).get("developers"))
-            if names:
-                return names
+            if name_key(hit.get("name")) in wanted:
+                yield hit
+
+
+def igdb_title_matches(title, token, fields, cache_prefix):
+    """Yield IGDB search hits whose name matches any variation of the title."""
+    variations = title_variations(title)
+    wanted = {name_key(x) for x in variations}
+    for variant in variations:
+        safe = variant.replace("\\", " ").replace('"', " ")
+        body = f'search "{safe}"; fields name,{fields}; limit 10;'
+        hits = cached(f"{cache_prefix}_{name_key(variant)}", lambda b=body: get_json(
+            "https://api.igdb.com/v4/games", method="post", data=b,
+            headers={"Client-ID": IGDB_CLIENT_ID, "Authorization": f"Bearer {token}"}))
+        for hit in hits or []:
+            if name_key(hit.get("name")) in wanted:
+                yield hit
+
+
+def search_rawg_developers(title):
+    """Search RAWG by every title variation; return developer names or ''."""
+    for hit in rawg_title_matches(title):
+        detail = cached(f"rawg_detail_{hit['id']}", fetch_rawg_detail, hit["id"])
+        names = join_names((detail or {}).get("developers"))
+        if names:
+            return names
     return ""
 
 
@@ -813,42 +835,26 @@ def format_rawg_creator_credits(credits):
 
 def search_rawg_creator_credits(title):
     """Find matching RAWG game credits when no developer studio is listed."""
-    wanted = {name_key(x) for x in title_variations(title)}
-    for variant in title_variations(title):
-        results = cached(f"rawg_search_{name_key(variant)}", lambda v=variant: get_json(
-            "https://api.rawg.io/api/games",
-            params={"key": RAWG_KEY, "search": v, "search_precise": "true", "page_size": 10}))
-        for hit in (results or {}).get("results", []):
-            if name_key(hit.get("name")) not in wanted:
-                continue
-            credits = cached(
-                f"rawg_development_team_{hit['id']}",
-                fetch_rawg_development_team,
-                hit["id"],
-            )
-            names = format_rawg_creator_credits(credits)
-            if names:
-                return names
+    for hit in rawg_title_matches(title):
+        credits = cached(
+            f"rawg_development_team_{hit['id']}",
+            fetch_rawg_development_team,
+            hit["id"],
+        )
+        names = format_rawg_creator_credits(credits)
+        if names:
+            return names
     return ""
 
 
 def igdb_search_developers(title, token):
     """Search IGDB by title variations; return developer company names or ''."""
-    for variant in title_variations(title):
-        safe = variant.replace("\\", " ").replace('"', " ")
-        body = (f'search "{safe}"; fields name,involved_companies.company.name,'
-                f'involved_companies.developer; limit 10;')
-        hits = cached(f"igdb_search_{name_key(variant)}", lambda b=body: get_json(
-            "https://api.igdb.com/v4/games", method="post", data=b,
-            headers={"Client-ID": IGDB_CLIENT_ID, "Authorization": f"Bearer {token}"}))
-        wanted = {name_key(x) for x in title_variations(title)}
-        for hit in hits or []:
-            if name_key(hit.get("name")) not in wanted:
-                continue
-            devs = [ic["company"]["name"] for ic in hit.get("involved_companies") or []
-                    if ic.get("developer") and (ic.get("company") or {}).get("name")]
-            if devs:
-                return "; ".join(devs)
+    fields = "involved_companies.company.name,involved_companies.developer"
+    for hit in igdb_title_matches(title, token, fields, "igdb_search"):
+        devs = [ic["company"]["name"] for ic in hit.get("involved_companies") or []
+                if ic.get("developer") and (ic.get("company") or {}).get("name")]
+        if devs:
+            return "; ".join(devs)
     return ""
 
 
@@ -927,6 +933,123 @@ def fill_missing_developers(games):
         still[cols].to_csv(OUT_DIR / "games_missing_developer.csv", index=False, encoding="utf-8-sig")
         print(f"      ! {len(still)} games still have no developer "
               f"(see output/games_missing_developer.csv)")
+    return games
+
+
+# --------------------------------------------------------------------------
+# Genre backfill: one 0/1 column per genre, and a genre for every game
+# --------------------------------------------------------------------------
+# Every source names genres differently; map them onto one shared vocabulary.
+# Steam's non-genre labels ("Free To Play", "Early Access", software categories) are ignored.
+GENRE_ALIASES = {
+    "action": "Action", "adventure": "Adventure", "indie": "Indie", "casual": "Casual",
+    "arcade": "Arcade", "puzzle": "Puzzle", "racing": "Racing", "fighting": "Fighting",
+    "shooter": "Shooter", "tactical": "Tactical", "music": "Music", "moba": "MOBA",
+    "pinball": "Pinball", "family": "Family", "visual novel": "Visual Novel",
+    "role-playing (rpg)": "RPG", "role-playing": "RPG", "rpg": "RPG",
+    "strategy": "Strategy", "real time strategy (rts)": "Strategy",
+    "turn-based strategy (tbs)": "Strategy",
+    "simulation": "Simulation", "simulator": "Simulation",
+    "platform": "Platformer", "platformer": "Platformer",
+    "sport": "Sports", "sports": "Sports",
+    "hack and slash/beat 'em up": "Hack and Slash",
+    "point-and-click": "Point-and-Click",
+    "card & board game": "Card & Board Game", "board games": "Card & Board Game",
+    "card": "Card & Board Game",
+    "massively multiplayer": "Massively Multiplayer",
+    "quiz/trivia": "Quiz/Trivia",
+    "educational": "Educational", "education": "Educational",
+}
+GENRE_NAMES = tuple(sorted(set(GENRE_ALIASES.values())))
+
+
+def genre_column(genre):
+    return "genre_" + re.sub(r"[^a-z0-9]+", "_", genre.lower()).strip("_")
+
+
+GENRE_FLAG_COLS = [genre_column(g) for g in GENRE_NAMES]
+GENRE_OUTPUT_COLS = ["primary_genre", "genre_count", "genre_source"] + GENRE_FLAG_COLS
+
+
+def normalize_genres(*values):
+    """Merge genre strings from any source into shared names, first-seen order."""
+    found = []
+    for value in values:
+        if is_blank(value):
+            continue
+        for part in re.split(r"\s*[;|]\s*", str(value)):
+            genre = GENRE_ALIASES.get(part.strip().lower())
+            if genre and genre not in found:
+                found.append(genre)
+    return found
+
+
+def search_genres(row, token):
+    """Look a game's genres up online. Returns (genres list, source name)."""
+    appid = pd.to_numeric(row.get("steam_appid"), errors="coerce")
+    rawg_id = pd.to_numeric(row.get("rawg_id"), errors="coerce")
+    title = row["game_name"]
+    if pd.notna(appid):
+        details = cached(f"steam_details_v2_{int(appid)}", fetch_steam_details, int(appid))
+        found = normalize_genres((details or {}).get("genres"))
+        if found:
+            return found, "steam"
+    if RAWG_KEY and pd.notna(rawg_id):
+        detail = cached(f"rawg_detail_{int(rawg_id)}", fetch_rawg_detail, int(rawg_id))
+        found = normalize_genres(join_names((detail or {}).get("genres")))
+        if found:
+            return found, "rawg_detail"
+    if token:
+        for hit in igdb_title_matches(title, token, "genres.name", "igdb_genre_search"):
+            found = normalize_genres(join_names(hit.get("genres")))
+            if found:
+                return found, "igdb_search"
+    if RAWG_KEY and pd.isna(rawg_id):
+        for hit in rawg_title_matches(title):
+            found = normalize_genres(join_names(hit.get("genres")))
+            if found:
+                return found, "rawg_search"
+    return [], ""
+
+
+def fill_missing_genres(games):
+    """Merge every source's genres, backfill blanks online, then split into columns.
+
+    Adds genres (shared vocabulary), primary_genre, genre_count, genre_source and
+    one 0/1 column per genre (genre_action, genre_rpg, ...). Games still without
+    a genre are written to output/games_missing_genre.csv.
+    """
+    games = games.copy()
+    for col in ("genres", "igdb_genres", "rawg_genres"):
+        if col not in games.columns:
+            games[col] = pd.NA
+    merged = [normalize_genres(a, b, c)
+              for a, b, c in zip(games["genres"], games["igdb_genres"], games["rawg_genres"])]
+    source = pd.Series(["catalog" if g else "" for g in merged], index=games.index)
+    missing = [i for i, g in enumerate(merged) if not g]
+    print(f"      {len(missing)} games missing a genre - searching sources...")
+
+    token = igdb_token() if IGDB_CLIENT_ID and IGDB_CLIENT_SECRET else None
+    for n, pos in enumerate(missing, 1):
+        found, found_source = search_genres(games.iloc[pos], token)
+        if found:
+            merged[pos], source.iloc[pos] = found, found_source
+        if n % 100 == 0:
+            print(f"      genre lookup {n}/{len(missing)}")
+
+    games["genres"] = ["; ".join(g) for g in merged]
+    games["genre_source"] = source
+    games["primary_genre"] = [g[0] if g else "" for g in merged]
+    games["genre_count"] = [len(g) for g in merged]
+    for genre, col in zip(GENRE_NAMES, GENRE_FLAG_COLS):
+        games[col] = [int(genre in g) for g in merged]
+
+    still = games[games["genre_count"].eq(0)]
+    if not still.empty:
+        cols = [c for c in ("steam_appid", "game_name", "platform", "data_source") if c in still.columns]
+        still[cols].to_csv(OUT_DIR / "games_missing_genre.csv", index=False, encoding="utf-8-sig")
+        print(f"      ! {len(still)} games still have no genre "
+              f"(see output/games_missing_genre.csv)")
     return games
 
 
@@ -1202,7 +1325,8 @@ def main():
 
     supplemental_reviews, steam_catalog = load_supplemental_steam_data()
     base = supplemental_game_rows(selected, steam_catalog)
-    games_output = fill_missing_developers(merge_all_games(base, igdb, rawg))
+    games_output = fill_missing_genres(
+        fill_missing_developers(merge_all_games(base, igdb, rawg)))
 
     # ---- 5. reviews + cleaning --------------------------------------------
     print("[5/6] Pulling Steam reviews (recent + most helpful) and cleaning...")
@@ -1234,14 +1358,15 @@ def main():
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",
         "igdb_themes", "igdb_game_modes", "igdb_perspectives", "igdb_platforms",
         "steam_categories", "steam_platforms",
-    ]
+    ] + GENRE_OUTPUT_COLS
     game_cols = [c for c in game_cols if c in games_output.columns]
     steam_games = games_output.dropna(subset=["steam_appid"]).drop_duplicates("steam_appid")
     out = reviews.merge(steam_games[game_cols], on="steam_appid", how="left")
     out = out.rename(columns={"total_reviews": "steam_total_reviews",
                               "review_score_desc": "steam_review_score_desc"})
     review_cols = [
-        "steam_appid", "game_name", "game_type", "release_date", "genres", "price_usd",
+        "steam_appid", "game_name", "game_type", "release_date", "genres", "primary_genre",
+        "genre_count", "genre_source", *GENRE_FLAG_COLS, "price_usd",
         "developers", "developer_source", "publishers", "steam_total_reviews", "steam_pct_positive",
         "steam_review_score_desc", "steam_metacritic", "metacritic", "rawg_rating",
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",

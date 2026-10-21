@@ -11,5 +11,4 @@ __pycache__/
 
 # Regenerable pipeline artifacts
 /output/
-
-# Raw source data (files exceed GitHub's 100 MB limit)
+/data/raw/

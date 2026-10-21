@@ -58,11 +58,25 @@ python gamepulse_pipeline.py
 
 | File | Contents |
 |---|---|
-| `gamepulse_games_clean.csv` | Catalog of games with `developers` and `developer_source` |
-| `gamepulse_reviews_clean.csv` | Cleaned reviews with sentiment columns |
+| `gamepulse_games_clean.csv` | Catalog of games with `developers`, `developer_source` and the genre columns |
+| `gamepulse_reviews_clean.csv` | Cleaned reviews with sentiment columns and the game's genre columns |
 | `gamepulse_game_summary.csv` | One row per selected game with aggregated sentiment/trust metrics |
 | `cleaning_log.csv` | How many reviews each cleaning step removed |
 | `games_missing_developer.csv` | Games where no developer could be found (e.g. Xbox titles; the Xbox CSV has no developer column) |
+| `games_missing_genre.csv` | Games where no genre could be found (only written when some remain) |
+
+### Genres
+
+Genre names differ by source (IGDB "Role-playing (RPG)", RAWG "RPG", Steam "Free To Play"), so they are mapped onto one
+shared list of 26 genres (Action, Adventure, RPG, Strategy, Simulation, Shooter, Platformer, Sports, …). Steam's
+non-genre labels such as "Free To Play" and "Early Access" are dropped.
+
+- `genres` – the game's genres, `; `-separated.
+- `primary_genre` – the first genre; `genre_count` – how many genres the game has.
+- `genre_action`, `genre_rpg`, `genre_platformer`, … – one column per genre, `1` if the game has it, else `0`.
+- `genre_source` – where the genre came from (`catalog`, `steam`, `rawg_detail`, `igdb_search`, `rawg_search`).
+
+Genre lookup order for games with no genre: Steam → RAWG detail → IGDB title search → RAWG title search.
 
 ### The AI rating
 
