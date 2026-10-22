@@ -39,6 +39,7 @@ Raw API responses are cached in ./data/raw so re-runs are fast.
 Delete that folder if you want a completely fresh pull.
 """
 
+import hashlib
 import html
 import json
 import os
@@ -81,6 +82,7 @@ RAW_DIR = BASE_DIR / "data" / "raw"
 OUT_DIR = BASE_DIR / "output"
 DATA_DIR = BASE_DIR / "Data CSVs"
 RAW_DIR.mkdir(parents=True, exist_ok=True)
+MAX_CACHE_NAME = 70
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -125,6 +127,9 @@ def get_json(url, params=None, method="get", data=None, headers=None,
 
 def cached(name, fn, *args):
     """Run fn(*args) once and save the result to data/raw/<name>.json."""
+    if len(name) > MAX_CACHE_NAME:  # keep file names short; hash keeps them unique
+        digest = hashlib.sha1(name.encode("utf-8")).hexdigest()[:10]
+        name = f"{name[:MAX_CACHE_NAME - 11]}_{digest}"
     path = RAW_DIR / f"{name}.json"
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
