@@ -31,13 +31,3 @@ class GamePlatforms:
     PlatformID: int
     ReleaseDate: date
     Price: Decimal
-
-
-class Genre:
-    GenreID: int
-    Genre: str
-
-
-class GameGenres:
-    GameID: int
-    GenreID: int
