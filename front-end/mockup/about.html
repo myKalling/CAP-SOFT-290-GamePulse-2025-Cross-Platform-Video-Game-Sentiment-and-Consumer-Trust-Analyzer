@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="output.css" rel="stylesheet">
 </head>
-<body style="font-family: Arial, Helvetica, sans-serif;" class="bg-gray-900 text-gray-200 leading-relaxed">
+<body style="font-family: Arial, Helvetica, sans-serif; text-align: center;" class="bg-gray-900 text-gray-200 leading-relaxed">
 
   <header class="bg-gray-800 border-b border-gray-700">
     <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4 p-4">
@@ -22,16 +22,37 @@
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto p-6 space-y-8">
-    <h1 class="text-4xl font-bold text-gray-50">About the Site</h1>
+  <section class="text-gray-50 p-2 text-2xl " style="display:flex; justify-content:center; gap:1rem; text-align:center; ">
+    <a href="#about" >About</a>
+    <a href="#roles" >Roles</a>
+    <a href="#team" >GamePulse</a>
+    <a href="#contact" >Contact</a>
+  </section>
+  <main class="max-w-3xl mx-auto p-6 space-y-8 ">
+    <h1 id="about" class="text-4xl font-bold text-gray-50 ">About Us</h1>
 
+   
     <section id="mission" aria-labelledby="mission-heading" class="space-y-2">
-      <h2 id="mission-heading" class="text-2xl font-bold text-gray-50">Our Mission</h2>
-      <p>Make the site accessible and functional.</p>
+      <p class="text-2xl text-gray-50">
+        We are a student-lead team that created this wesbite from start to finish as part of our capstone project.
+        <br>
+        <br>
+        <section id="roles" class="text-2xl text-gray-50">
+        <p class="text-3xl font-bold text-gray-50">Our Roles:</p>
+        <br>
+        <ul>
+          <li>Web Development -> Marcus Pendleton</li>
+          <li>Mobile Development -> Ava Ortiz</li>
+          <li>API Development -> Blake Watts</li>
+          <li>Database -> Ryan Michael</li>
+          <li>Ai Pipeline -> Kenny Gallardo</li>
+        </ul>
+        </section>
+      </p>
     </section>
 
     <section id="team" aria-labelledby="team-heading" class="space-y-2">
-      <h2 id="team-heading" class="text-2xl font-bold text-gray-50">Our Team</h2>
+      <h2 id="team-heading" class="text-3xl font-bold text-gray-50">About Gamepulse</h2>
       <p>I plan on keeping up with everyone's progress to get this site closer every week to being completed.</p>
     </section>
 
@@ -42,6 +63,21 @@
          class="inline-block bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-300">
         Visit the GitHub repo (opens in a new tab)
       </a>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-heading" class="space-y-2">
+      <h2 id="contact-heading" class="text-2xl font-bold text-gray-50">Contact Us</h2>
+      <p class="text-2xl text-gray-50">For any inquiries or feedback, please reach out to us individually:</p>
+      <br>
+      <p class="text-2xl text-gray-50"> Marcus Pendleton <br><a href="mailto:marcuspendleton@example.com" class="text-indigo-500">marcuspendleton@example.com</a></p>
+      <br>
+      <p class="text-2xl text-gray-50"> Ava Ortiz <br><a href="mailto:avaortiz1507@gmail.com" class="text-indigo-500">avaortiz1507@gmail.com</a></p>
+      <br>
+      <p class="text-2xl text-gray-50"> Blake Watts <br><a href="mailto:blakewatts@example.com" class="text-indigo-500">blakewatts@example.com</a></p>
+      <br>
+      <p class="text-2xl text-gray-50"> Ryan Michael <br><a href="mailto:ryanmichael@example.com" class="text-indigo-500">ryanmichael@example.com</a></p>
+      <br>
+      <p class="text-2xl text-gray-50"> Kenny Gallardo <br><a href="mailto:kennygallardo@example.com" class="text-indigo-500">kennygallardo@example.com</a></p>
     </section>
   </main>
 
