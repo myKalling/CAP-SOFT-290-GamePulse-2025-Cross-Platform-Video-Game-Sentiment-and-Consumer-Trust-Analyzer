@@ -1,43 +1,33 @@
 from datetime import date
 from decimal import Decimal
+from pydantic import BaseModel
 
-
-class Developer:
+class Developer(BaseModel):
     DevID: int
     Developer: str
 
 
-class Platform:
+class Platform(BaseModel):
     PlatformID: int
     Platform: str
 
 
-class Game:
+class Game(BaseModel):
     GameID: int
     Title: str
     DevID: int
 
 
-class Review:
+class Review(BaseModel):
     ReviewID: int
     GamePlatformsID: int
     Review: str
     Sentiment: int
 
 
-class GamePlatforms:
+class GamePlatforms(BaseModel):
     GamePlatformsID: int
     GameID: int
     PlatformID: int
     ReleaseDate: date
     Price: Decimal
-
-
-class Genre:
-    GenreID: int
-    Genre: str
-
-
-class GameGenres:
-    GameID: int
-    GenreID: int
