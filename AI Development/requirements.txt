@@ -2,3 +2,6 @@ requests==2.34.2
 pandas==3.0.6
 python-dotenv==1.2.4
 vaderSentiment==3.3.2
+scikit-learn==1.9.1
+pyarrow==26.0.0
+pytest==9.1.1
