@@ -35,6 +35,8 @@ OUT_DIR = BASE_DIR / "output"
 SAMPLE_PATH = OUT_DIR / "gamepulse_sentiment_validation_sample.csv"
 REVIEWS_PATH = OUT_DIR / "gamepulse_reviews_clean.csv"
 RESULTS_PATH = OUT_DIR / "sentiment_validation_results.csv"
+DATA_DIR = BASE_DIR.parent / "Data CSVs"
+MULTISOURCE_NAMES = ("amazon2023", "amazon2018", "metacritic")
 
 EPOCHS = 10
 BATCH_SIZE = 32
@@ -69,6 +71,29 @@ def load_labeled_sample(sample_path=SAMPLE_PATH, reviews_path=REVIEWS_PATH):
 
     usable = sample.dropna(subset=["label", "review_text"])
     return usable["review_text"].astype(str), usable["label"].astype(int), usable["label_source"]
+
+
+def load_multisource_sample(per_class_per_source=10_000, sources=None, data_dir=DATA_DIR,
+                            random_state=RANDOM_STATE):
+    """Class-balanced sample from the public corpora built by prepare_training_data.py.
+
+    Returns (text, label 0/1, source). Draws up to per_class_per_source positive and
+    negative reviews from each source so the skewed star distributions don't dominate.
+    """
+    sources = sources or MULTISOURCE_NAMES
+    parts = []
+    for name in sources:
+        path = Path(data_dir) / f"{name}_normalized.csv"
+        if not path.exists():
+            raise FileNotFoundError(f"{path} missing - run prepare_training_data.py first")
+        df = pd.read_csv(path, usecols=["text", "label", "source"])
+        for label in (0, 1):
+            group = df[df["label"] == label]
+            parts.append(group.sample(min(len(group), per_class_per_source),
+                                      random_state=random_state))
+    combined = (pd.concat(parts).drop_duplicates("text")   # 2018 and 2023 overlap
+                .sample(frac=1, random_state=random_state).dropna(subset=["text"]))
+    return combined["text"].astype(str), combined["label"].astype(int), combined["source"]
 
 
 def build_training_data(text, labels, test_size=TEST_SIZE, random_state=RANDOM_STATE,
@@ -182,9 +207,14 @@ def test(params, x_test, y_test, activation):
             "test_precision": precision, "test_recall": recall, "test_f1": f1}
 
 
-def run_validation(activations=ACTIVATIONS, epochs=EPOCHS):
-    text, labels, sources = load_labeled_sample()
-    x_train, x_test, y_train, y_test = build_training_data(text, labels)
+def run_validation(activations=ACTIVATIONS, epochs=EPOCHS, multisource=False,
+                   per_class_per_source=10_000, max_features=MAX_FEATURES):
+    if multisource:
+        text, labels, sources = load_multisource_sample(per_class_per_source)
+    else:
+        text, labels, sources = load_labeled_sample()
+    x_train, x_test, y_train, y_test = build_training_data(text, labels,
+                                                           max_features=max_features)
     print(f"Labeled rows: {len(labels)} ({sources.value_counts().to_dict()}), "
           f"positive share {labels.mean():.2f}")
     print(f"x_train {x_train.shape}, y_train {y_train.shape}, "
@@ -206,4 +236,14 @@ def run_validation(activations=ACTIVATIONS, epochs=EPOCHS):
 
 
 if __name__ == "__main__":
-    run_validation()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="GamePulse sentiment validation")
+    parser.add_argument("--multisource", action="store_true",
+                        help="train on the Amazon 2023/2018 + Metacritic corpora")
+    parser.add_argument("--per-class", type=int, default=10_000,
+                        help="reviews per class per source (multisource only)")
+    parser.add_argument("--max-features", type=int, default=MAX_FEATURES)
+    args = parser.parse_args()
+    run_validation(multisource=args.multisource, per_class_per_source=args.per_class,
+                   max_features=args.max_features)
