@@ -22,6 +22,7 @@ Outputs (in ./output)
   gamepulse_games_clean.csv      <- all games (Steam, Xbox, IGDB, RAWG) enriched; every
                                     game gets a developer and one 0/1 column per genre
   gamepulse_game_summary.csv     <- one row per reviewed game: sentiment metrics
+  gamepulse_sentiment_validation_sample.csv <- reproducible review sample for manual labeling
   cleaning_log.csv               <- how many rows each cleaning step removed
 
 Supplemental data in ./Data CSVs is included when present:
@@ -33,6 +34,9 @@ Review sentiment is scored clause by clause with VADER (contrast words such as
 mixed reviews land mid-scale; the 0-100 score is grouped into five 20-point
 rating categories and mixed reviews are flagged in sentiment_mixed.
 sentiment_label remains the reviewer's Steam vote when available.
+The sentiment validation sample is a blind annotation template: fill
+manual_sentiment_label with positive, negative, neutral, or mixed; Steam votes
+and model scores are omitted to reduce annotation bias.
 
 Run:  python gamepulse_pipeline.py
 Raw API responses are cached in ./data/raw so re-runs are fast.
@@ -71,6 +75,8 @@ IGDB_EXTRA_CANDIDATES = 120  # extra Steam candidates taken from IGDB (by follow
 REVIEWS_RECENT = 150        # newest Steam reviews per game
 REVIEWS_HELPFUL = 150       # most helpful Steam reviews (last 365 days) per game
 MIN_WORDS = 4               # reviews shorter than this are "low information"
+SENTIMENT_VALIDATION_SAMPLE_SIZE = 500
+SENTIMENT_VALIDATION_RANDOM_STATE = 42
 REQUEST_DELAY = 1.0         # seconds between live API calls (be polite)
 IGDB_DELAY = 0.3            # IGDB allows ~4 requests/second
 
@@ -1269,6 +1275,29 @@ def build_game_summary(reviews, games):
     return summary.merge(steam_games, on="steam_appid", how="left")
 
 
+def build_sentiment_validation_sample(reviews, sample_size=SENTIMENT_VALIDATION_SAMPLE_SIZE):
+    """Build a reproducible, blind annotation sample from cleaned reviews."""
+    columns = ["recommendation_id", "steam_appid", "game_name", "review_date", "review_text"]
+    missing = set(columns) - set(reviews.columns)
+    if missing:
+        raise ValueError(f"Cleaned reviews are missing required columns: {sorted(missing)}")
+    if sample_size <= 0:
+        raise ValueError("sample_size must be greater than zero.")
+
+    eligible = reviews.dropna(subset=["recommendation_id", "review_text"]).copy()
+    eligible = eligible[eligible["review_text"].astype(str).str.strip().ne("")]
+    if eligible.empty:
+        raise ValueError("No cleaned reviews are available for sentiment validation.")
+
+    sample = eligible.sample(
+        n=min(sample_size, len(eligible)),
+        random_state=SENTIMENT_VALIDATION_RANDOM_STATE,
+    )[columns].copy()
+    sample["manual_sentiment_label"] = ""
+    sample["annotation_notes"] = ""
+    return sample
+
+
 # --------------------------------------------------------------------------
 # MAIN
 # --------------------------------------------------------------------------
@@ -1393,6 +1422,15 @@ def main():
     games_output.to_csv(OUT_DIR / "gamepulse_games_clean.csv", index=False, encoding="utf-8-sig")
     build_game_summary(reviews, games_output).to_csv(
         OUT_DIR / "gamepulse_game_summary.csv", index=False, encoding="utf-8-sig")
+    sample_path = OUT_DIR / "gamepulse_sentiment_validation_sample.csv"
+    validation_sample = build_sentiment_validation_sample(out)
+    if sample_path.exists():  # never overwrite labels that were already filled in
+        existing = pd.read_csv(sample_path, usecols=["manual_sentiment_label"])
+        if existing["manual_sentiment_label"].notna().any():
+            print(f"      Keeping labeled {sample_path.name}; delete it to regenerate.")
+            validation_sample = pd.read_csv(sample_path)
+    if not sample_path.exists() or validation_sample["manual_sentiment_label"].eq("").all():
+        validation_sample.to_csv(sample_path, index=False, encoding="utf-8-sig")
     pd.DataFrame(log, columns=["step", "rows"]).to_csv(OUT_DIR / "cleaning_log.csv", index=False)
 
     print("\nCleaning summary")
@@ -1400,6 +1438,7 @@ def main():
         print(f"  {step:<55} {n:>6}")
     print(f"\nSaved {len(out)} reviews from {out['game_name'].nunique()} games and "
           f"{len(games_output)} catalog games to {OUT_DIR}")
+    print(f"Saved {len(validation_sample)} reviews for manual sentiment validation.")
 
 
 if __name__ == "__main__":
