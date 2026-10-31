@@ -1,33 +1,46 @@
 from datetime import date
-from decimal import Decimal
+
+from pydantic import BaseModel, ConfigDict
 
 
-class Developer:
-    DevID: int
-    Developer: str
+class APIModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
 
-class Platform:
+class Developer(APIModel):
+    DeveloperID: int
+    DeveloperName: str
+
+
+class Platform(APIModel):
     PlatformID: int
-    Platform: str
+    PlatformName: str
 
 
-class Game:
+class Game(APIModel):
     GameID: int
     Title: str
-    DevID: int
+    DeveloperID: int
+    DeveloperName: str
 
 
-class Review:
+class GamePlatform(APIModel):
+    GamePlatformsID: int
+    GameID: int
+    PlatformID: int
+    PlatformName: str
+    ReleaseDate: date
+    Price: float
+
+
+class Review(APIModel):
     ReviewID: int
     GamePlatformsID: int
     Review: str
     Sentiment: int
 
 
-class GamePlatforms:
-    GamePlatformsID: int
+class GameGenre(APIModel):
     GameID: int
-    PlatformID: int
-    ReleaseDate: date
-    Price: Decimal
+    GenreID: int
+    Genre: str
