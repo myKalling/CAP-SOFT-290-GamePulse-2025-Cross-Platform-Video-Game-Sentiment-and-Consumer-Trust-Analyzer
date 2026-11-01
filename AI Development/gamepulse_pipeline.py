@@ -1245,6 +1245,62 @@ def clean_games(games):
     return g.drop(columns=["release_date_raw", "coming_soon"], errors="ignore")
 
 
+GAME_SENTIMENT_COLS = [
+    "sentiment_label", "sentiment_score_100", "sentiment_rating", "sentiment_category",
+    "sentiment_mixed", "sentiment_positive_share", "sentiment_negative_share",
+]
+SENTIMENT_CATEGORIES = {1: "Very Poor", 2: "Poor", 3: "Mid", 4: "Good", 5: "Very Good"}
+
+
+def aggregate_game_sentiment(reviews):
+    """Roll per-review sentiment up to one row per steam_appid, using the review columns' meaning.
+
+    label: majority Steam vote (positive/negative, "mixed" on an exact tie)
+    score: mean review score; rating/category: the same 20-point bands as a review
+    shares: positive vs negative opinion strength summed across all reviews, so they add to 1
+    mixed: minority polarity carries >= MIXED_MIN_SHARE, as in score_review_text
+    """
+    r = reviews.dropna(subset=["steam_appid"])
+    grouped = r.groupby("steam_appid")
+
+    def majority_vote(labels):
+        pos, neg = (labels == "positive").sum(), (labels == "negative").sum()
+        if pos == neg == 0:
+            return "unlabeled"
+        return "positive" if pos > neg else "negative" if neg > pos else "mixed"
+
+    pos_total = grouped["sentiment_positive_share"].sum()
+    neg_total = grouped["sentiment_negative_share"].sum()
+    # neutral reviews have 0/0 shares, so they add nothing to either side
+    opinion = (pos_total + neg_total).where(lambda s: s > 0)
+    result = pd.DataFrame({
+        "sentiment_label": grouped["sentiment_label"].apply(majority_vote),
+        "sentiment_score_100": grouped["sentiment_score_100"].mean().round(1),
+    })
+    result["sentiment_rating"] = result["sentiment_score_100"].map(sentiment_rating).astype("int8")
+    result["sentiment_category"] = result["sentiment_rating"].map(SENTIMENT_CATEGORIES)
+    result["sentiment_positive_share"] = (pos_total / opinion).fillna(0.0).round(2)
+    result["sentiment_negative_share"] = (neg_total / opinion).fillna(0.0).round(2)
+    result["sentiment_mixed"] = (
+        result[["sentiment_positive_share", "sentiment_negative_share"]].min(axis=1)
+        >= MIXED_MIN_SHARE
+    )
+    return result[GAME_SENTIMENT_COLS]
+
+
+def add_game_sentiment(games, reviews):
+    """Attach aggregated review sentiment to every game; unreviewed games stay blank."""
+    base = games.drop(columns=GAME_SENTIMENT_COLS, errors="ignore")
+    aggregated = aggregate_game_sentiment(reviews)
+    aggregated.index = aggregated.index.astype("int64")
+    appids = pd.to_numeric(base["steam_appid"], errors="coerce")
+    merged = base.copy()
+    for col in GAME_SENTIMENT_COLS:
+        merged[col] = appids.map(aggregated[col])
+    merged["sentiment_rating"] = merged["sentiment_rating"].astype("Int8")
+    return merged
+
+
 def build_game_summary(reviews, games):
     """One row per reviewed game with sentiment metrics next to catalog data."""
     grouped = reviews.groupby("steam_appid")
@@ -1419,7 +1475,8 @@ def main():
 
     # utf-8-sig so Excel opens the file with correct characters
     out.to_csv(OUT_DIR / "gamepulse_reviews_clean.csv", index=False, encoding="utf-8-sig")
-    games_output.to_csv(OUT_DIR / "gamepulse_games_clean.csv", index=False, encoding="utf-8-sig")
+    add_game_sentiment(games_output, reviews).to_csv(
+        OUT_DIR / "gamepulse_games_clean.csv", index=False, encoding="utf-8-sig")
     build_game_summary(reviews, games_output).to_csv(
         OUT_DIR / "gamepulse_game_summary.csv", index=False, encoding="utf-8-sig")
     sample_path = OUT_DIR / "gamepulse_sentiment_validation_sample.csv"
