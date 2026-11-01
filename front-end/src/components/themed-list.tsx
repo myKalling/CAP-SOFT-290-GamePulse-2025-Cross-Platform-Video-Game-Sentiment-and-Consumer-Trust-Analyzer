@@ -13,8 +13,9 @@ export default function ThemedList({ items }: { items: ListItem[] }) {
   return (
     <View style={{ flexDirection: 'column' }}>
       {items.map((listItem, index) => (
+        // unicode bullet
         <View key={index} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ marginRight: 8 }}>•</Text> {/* unicode bullet */}
+          <Text style={{ marginRight: 8 }}>•</Text>
           <Text>{listItem.item}</Text>
           {listItem.link ? (
             <EmailLink recipient={listItem.link.replace(/^mailto:/, '')} />

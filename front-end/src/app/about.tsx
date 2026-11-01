@@ -18,28 +18,36 @@ export default function AboutScreen() {
   return (
     <ThemedView style={[styles.container, {flex: 1}]}>
       <SafeAreaView style={[styles.safeArea, {flex: 1}]}>
+
         <ThemedText type="title" style={styles.title}>
           About Us
         </ThemedText>
+        
         <ThemedView style={styles.content}>
           <ThemedText>
-            We are a student-lead team that created this wesbite from start to finish as part of our capstone project.
+            We are a student-lead team that created this website from start to finish as part of our capstone project.
           </ThemedText>
           <ThemedView>
             <ThemedText>
               Our Roles:
             </ThemedText>
             <ThemedList items={[
-              { item: 'Web Development -> Marcus Pendleton' },
-              { item: 'Mobile Development -> Ava Ortiz' },
-              { item: 'API Development -> Blake Watts' },
-              { item: 'Database -> Ryan Michael' },
-              { item: 'Ai Pipeline -> Kenny Gallardo' }
+              { item: 'Front-EndDevelopment -> Ava Ortiz' },
+              { item: 'Database/ Data-Cleaning -> Ryan Michael' },
+              { item: 'Ai Pipeline/ API-> Kenny Gallardo' }
             ]} />
           </ThemedView>
         </ThemedView>
+
         <ThemedView style={styles.content}>
-          </ThemedView>
+          <ThemedText>
+            About Gamepulse
+          </ThemedText>
+          <ThemedText>
+           I plan on keeping up with everyone's progress to get this site closer every week to being completed.
+          </ThemedText>
+        </ThemedView>
+
         <ThemedView>
           <ThemedText>
             Kenny's GitHub Repo
@@ -66,11 +74,11 @@ export default function AboutScreen() {
                 <ThemedText>
                   Ryan Michael:
                 </ThemedText>
-                <EmailLink recipient="ryanmichael1507@gmail.com" subject="Inquiry" body="Hello Ryan," />
+                <EmailLink recipient="ryannitroo@gmail.com" subject="Inquiry" body="Hello Ryan," />
                 <ThemedText>
                   Kenny Gallardo:
                 </ThemedText>
-                <EmailLink recipient="kennygallardo1507@gmail.com" subject="Inquiry" body="Hello Kenny," />
+                <EmailLink recipient="owner@mykalling.net" subject="Inquiry" body="Hello Kenny," />
               </ThemedView>
 
         </ThemedView>
