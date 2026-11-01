@@ -1,10 +1,10 @@
 step,rows
-raw reviews pulled,6000
-empty after removing markup/links,14
+raw reviews pulled,37470
+empty after removing markup/links,109
 known non-English,0
-duplicate review id,138
-symbol/ASCII-art spam (mostly non-letters),48
-"low information (<4 words, no gaming term)",802
-repetitive filler text,1
-duplicate / copy-paste review text,16
-clean reviews kept,4981
+duplicate review id,9043
+symbol/ASCII-art spam (mostly non-letters),116
+"low information (<4 words, no gaming term)",2402
+repetitive filler text,8
+duplicate / copy-paste review text,61
+clean reviews kept,25731

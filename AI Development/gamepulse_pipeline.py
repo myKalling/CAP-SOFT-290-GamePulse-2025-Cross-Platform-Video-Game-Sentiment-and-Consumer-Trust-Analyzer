@@ -28,12 +28,16 @@ Outputs (in ./output)
 Supplemental data in ./Data CSVs is included when present:
   steam 2025.csv                 <- additional Steam reviews and games
   xbox-games-2025.csv            <- Xbox game catalog and ratings
+  xbox-games-2025-written-reviews.csv <- Xbox Store written reviews (star rated),
+                                    matched to the catalog by store_id
 
 Review sentiment is scored clause by clause with VADER (contrast words such as
 "but" start a new clause). Positive and negative clauses offset each other, so
 mixed reviews land mid-scale; the 0-100 score is grouped into five 20-point
 rating categories and mixed reviews are flagged in sentiment_mixed.
-sentiment_label remains the reviewer's Steam vote when available.
+sentiment_label remains the reviewer's own vote when available: the Steam
+thumbs up/down, or for Xbox reviews 4-5 stars = positive, 1-2 = negative and
+3 = neutral.
 The sentiment validation sample is a blind annotation template: fill
 manual_sentiment_label with positive, negative, neutral, or mixed; Steam votes
 and model scores are omitted to reduce annotation bias.
@@ -577,6 +581,56 @@ def load_supplemental_steam_data():
     return reviews, source[["appid", "game_name"]]
 
 
+def xbox_vote(stars):
+    """Xbox star rating -> thumbs-style vote: 4-5 up, 1-2 down, 3 has no vote."""
+    return pd.Series(pd.NA, index=stars.index, dtype="object").mask(stars >= 4, True) \
+        .mask(stars <= 2, False)
+
+
+def load_xbox_reviews():
+    """Load Xbox Store written reviews in the same raw shape as the Steam reviews."""
+    source_path = DATA_DIR / "xbox-games-2025-written-reviews.csv"
+    if not source_path.exists():
+        print("      ! xbox-games-2025-written-reviews.csv not found; "
+              "continuing without Xbox written reviews.")
+        return pd.DataFrame()
+
+    required = {
+        "store_id", "review_id", "review_date", "review_title", "review_text",
+        "review_rating", "votes_up", "votes_down",
+    }
+    source = pd.read_csv(source_path, usecols=required, low_memory=False)
+    stars = pd.to_numeric(source["review_rating"], errors="raise")
+    created = pd.to_datetime(source["review_date"], format="mixed", errors="raise")
+    na = pd.Series(pd.NA, index=source.index, dtype="object")
+
+    return pd.DataFrame({
+        "data_source": "xbox-games-2025-written-reviews.csv",
+        "review_pull": "xbox_store",
+        "steam_appid": pd.Series(pd.NA, index=source.index, dtype="Int64"),
+        "xbox_store_id": source["store_id"].astype("string"),
+        "recommendation_id": source["review_id"].astype("string"),
+        "language": na,
+        "review_text": source["review_text"],
+        "review_title": source["review_title"],
+        "review_star_rating": stars,
+        "created_ts": (created - pd.Timestamp("1970-01-01")) // pd.Timedelta(seconds=1),
+        "voted_up": xbox_vote(stars),
+        "votes_up": pd.to_numeric(source["votes_up"], errors="coerce"),
+        "votes_down": pd.to_numeric(source["votes_down"], errors="coerce"),
+        "votes_funny": na,
+        "comment_count": na,
+        "weighted_vote_score": na,
+        "steam_purchase": na,
+        "received_for_free": na,
+        "early_access": na,
+        "playtime_at_review_min": na,
+        "playtime_forever_min": na,
+        "author_num_reviews": na,
+        "author_num_games_owned": na,
+    })
+
+
 # --------------------------------------------------------------------------
 # Games table: Steam + Xbox + IGDB + RAWG
 # --------------------------------------------------------------------------
@@ -973,6 +1027,21 @@ GENRE_ALIASES = {
 }
 GENRE_NAMES = tuple(sorted(set(GENRE_ALIASES.values())))
 
+# Microsoft Store categories -> the shared vocabulary above. Combined categories are
+# split; "Classics" and "Other" say nothing about genre and are ignored.
+XBOX_STORE_CATEGORIES = {
+    "action & adventure": "Action; Adventure", "card & board": "Card & Board Game",
+    "family & kids": "Family", "fighting": "Fighting", "music": "Music",
+    "platformer": "Platformer", "puzzle & trivia": "Puzzle", "word": "Puzzle",
+    "racing & flying": "Racing",
+    "role playing": "RPG", "shooter": "Shooter", "simulation": "Simulation",
+    "sports": "Sports", "strategy": "Strategy", "educational": "Educational",
+    "multi-player online battle arena": "MOBA",
+}
+XBOX_STORE_URL = "https://displaycatalog.mp.microsoft.com/v7.0/products"
+XBOX_STORE_BATCH = 10
+STEAM_SEARCH_URL = "https://store.steampowered.com/api/storesearch/"
+
 
 def genre_column(genre):
     return "genre_" + re.sub(r"[^a-z0-9]+", "_", genre.lower()).strip("_")
@@ -1023,6 +1092,82 @@ def search_genres(row, token):
     return [], ""
 
 
+def xbox_store_categories(store_ids):
+    """Microsoft Store categories per Xbox store_id, fetched in batches and cached per game.
+
+    Returns {store_id: [category names]}. Products the Store does not know are cached
+    as [] so they are not asked again; failed requests are not cached and retry next run.
+    """
+    result, todo = {}, []
+    for sid in dict.fromkeys(store_ids):
+        path = RAW_DIR / f"xbox_store_{sid}.json"
+        if path.exists():
+            result[sid] = json.loads(path.read_text(encoding="utf-8"))
+        else:
+            todo.append(sid)
+    for start in range(0, len(todo), XBOX_STORE_BATCH):
+        batch = todo[start:start + XBOX_STORE_BATCH]
+        data = get_json(XBOX_STORE_URL, params={
+            "bigIds": ",".join(batch), "market": "US", "languages": "en-US"},
+            headers={"MS-CV": "GamePulse.1"}, delay=0.3)
+        if data is None:
+            continue
+        found = {}
+        for product in data.get("Products") or []:
+            props = product.get("Properties") or {}
+            names = [props.get("Category"), *(props.get("Categories") or [])]
+            found[product.get("ProductId")] = [n for n in dict.fromkeys(names) if n]
+        for sid in batch:
+            result[sid] = found.get(sid, [])
+            (RAW_DIR / f"xbox_store_{sid}.json").write_text(
+                json.dumps(result[sid]), encoding="utf-8")
+    return result
+
+
+def fetch_steam_search(title):
+    return get_json(STEAM_SEARCH_URL, params={"term": title, "cc": "us", "l": "en"})
+
+
+def steam_title_genres(title):
+    """Genres of the Steam game whose title matches exactly (after normalising)."""
+    key = name_key(title)
+    if not key:
+        return []
+    results = cached(f"steam_search_{key}", fetch_steam_search, title) or {}
+    for item in results.get("items") or []:
+        if name_key(item.get("name")) == key and item.get("id"):
+            details = cached(f"steam_details_v2_{int(item['id'])}",
+                             fetch_steam_details, int(item["id"]))
+            found = normalize_genres((details or {}).get("genres"))
+            if found:
+                return found
+    return []
+
+
+def crawl_web_genres(rows):
+    """Last-resort genre crawl for games every other source missed.
+
+    1. Microsoft Store category, looked up by the game's Xbox store_id
+    2. Steam store search by exact title
+    Returns one (genres, source) per row, in order.
+    """
+    store_ids = []
+    if "xbox_store_id" in rows.columns:
+        store_ids = [str(s).strip() for s in rows["xbox_store_id"].dropna() if str(s).strip()]
+    categories = xbox_store_categories(store_ids)
+    found_online = []
+    for _, row in rows.iterrows():
+        sid = str(row.get("xbox_store_id") or "").strip()
+        names = [XBOX_STORE_CATEGORIES.get(c.lower()) for c in categories.get(sid, [])]
+        genres = normalize_genres(*names)
+        if genres:
+            found_online.append((genres, "xbox_store"))
+            continue
+        genres = steam_title_genres(row["game_name"])
+        found_online.append((genres, "steam_search") if genres else ([], ""))
+    return found_online
+
+
 def fill_missing_genres(games):
     """Merge every source's genres, backfill blanks online, then split into columns.
 
@@ -1048,6 +1193,13 @@ def fill_missing_genres(games):
         if n % 100 == 0:
             print(f"      genre lookup {n}/{len(missing)}")
 
+    unresolved = [pos for pos in missing if not merged[pos]]
+    if unresolved:
+        print(f"      {len(unresolved)} games still missing - crawling Microsoft Store / Steam...")
+        crawled = crawl_web_genres(games.iloc[unresolved])
+        for pos, (found, found_source) in zip(unresolved, crawled):
+            if found:
+                merged[pos], source.iloc[pos] = found, found_source
     games["genres"] = ["; ".join(g) for g in merged]
     games["genre_source"] = source
     games["primary_genre"] = [g[0] if g else "" for g in merged]
@@ -1057,7 +1209,8 @@ def fill_missing_genres(games):
 
     still = games[games["genre_count"].eq(0)]
     if not still.empty:
-        cols = [c for c in ("steam_appid", "game_name", "platform", "data_source") if c in still.columns]
+        cols = [c for c in ("steam_appid", "xbox_store_id", "game_name", "platform", "data_source")
+                if c in still.columns]
         still[cols].to_csv(OUT_DIR / "games_missing_genre.csv", index=False, encoding="utf-8-sig")
         print(f"      ! {len(still)} games still have no genre "
               f"(see output/games_missing_genre.csv)")
@@ -1213,6 +1366,8 @@ def clean_reviews(raw):
     df["sentiment_label"] = df["voted_up"].map(
         {True: "positive", False: "negative"}
     ).fillna("unlabeled")
+    if "review_star_rating" in df.columns:   # Xbox 3-star reviews are neutral, not unvoted
+        df.loc[df["review_star_rating"].eq(3), "sentiment_label"] = "neutral"
     created = pd.to_datetime(df["created_ts"], unit="s", utc=True, errors="coerce")
     df["review_date"] = created.dt.strftime("%Y-%m-%d")
     df["review_month"] = created.dt.strftime("%Y-%m")
@@ -1220,7 +1375,9 @@ def clean_reviews(raw):
                                                   errors="coerce") / 60).round(1)
     df["playtime_total_hrs"] = (pd.to_numeric(df["playtime_forever_min"],
                                               errors="coerce") / 60).round(1)
-    df["short_playtime_flag"] = df["playtime_at_review_hrs"] < 1  # useful for review-bomb checks
+    # useful for review-bomb checks; blank when the source has no playtime (Xbox)
+    hours = df["playtime_at_review_hrs"]
+    df["short_playtime_flag"] = (hours < 1).astype("boolean").where(hours.notna())
     # reviewer's vote contradicts the tone of their own text
     voted = df["voted_up"].map(parse_source_bool).astype("object")
     voted_up = voted.eq(True).fillna(False).astype(bool)
@@ -1252,21 +1409,33 @@ GAME_SENTIMENT_COLS = [
 SENTIMENT_CATEGORIES = {1: "Very Poor", 2: "Poor", 3: "Mid", 4: "Good", 5: "Very Good"}
 
 
-def aggregate_game_sentiment(reviews):
-    """Roll per-review sentiment up to one row per steam_appid, using the review columns' meaning.
+def game_key(frame):
+    """One identifier per game: Steam appid when known, otherwise the Xbox store id."""
+    keys = pd.Series(pd.NA, index=frame.index, dtype="string")
+    if "xbox_store_id" in frame.columns:
+        xbox = frame["xbox_store_id"].astype("string").str.strip().replace("", pd.NA)
+        keys = "xbox:" + xbox
+    if "steam_appid" in frame.columns:
+        appid = pd.to_numeric(frame["steam_appid"], errors="coerce").astype("Int64")
+        keys = ("steam:" + appid.astype("string")).fillna(keys)
+    return keys
 
-    label: majority Steam vote (positive/negative, "mixed" on an exact tie)
+
+def aggregate_game_sentiment(reviews):
+    """Roll per-review sentiment up to one row per game (see game_key).
+
+    label: majority reviewer vote (positive/negative, "mixed" on an exact tie)
     score: mean review score; rating/category: the same 20-point bands as a review
     shares: positive vs negative opinion strength summed across all reviews, so they add to 1
     mixed: minority polarity carries >= MIXED_MIN_SHARE, as in score_review_text
     """
-    r = reviews.dropna(subset=["steam_appid"])
-    grouped = r.groupby("steam_appid")
+    r = reviews.assign(game_key=game_key(reviews)).dropna(subset=["game_key"])
+    grouped = r.groupby("game_key")
 
     def majority_vote(labels):
         pos, neg = (labels == "positive").sum(), (labels == "negative").sum()
         if pos == neg == 0:
-            return "unlabeled"
+            return "neutral" if (labels == "neutral").any() else "unlabeled"
         return "positive" if pos > neg else "negative" if neg > pos else "mixed"
 
     pos_total = grouped["sentiment_positive_share"].sum()
@@ -1292,18 +1461,18 @@ def add_game_sentiment(games, reviews):
     """Attach aggregated review sentiment to every game; unreviewed games stay blank."""
     base = games.drop(columns=GAME_SENTIMENT_COLS, errors="ignore")
     aggregated = aggregate_game_sentiment(reviews)
-    aggregated.index = aggregated.index.astype("int64")
-    appids = pd.to_numeric(base["steam_appid"], errors="coerce")
+    keys = game_key(base)
     merged = base.copy()
     for col in GAME_SENTIMENT_COLS:
-        merged[col] = appids.map(aggregated[col])
+        merged[col] = keys.map(aggregated[col])
     merged["sentiment_rating"] = merged["sentiment_rating"].astype("Int8")
     return merged
 
 
 def build_game_summary(reviews, games):
     """One row per reviewed game with sentiment metrics next to catalog data."""
-    grouped = reviews.groupby("steam_appid")
+    grouped = reviews.assign(game_key=game_key(reviews)).dropna(subset=["game_key"]) \
+        .groupby("game_key")
     summary = pd.DataFrame({
         "reviews_kept": grouped.size(),
         "pct_voted_positive": grouped["voted_up"].apply(
@@ -1319,16 +1488,21 @@ def build_game_summary(reviews, games):
         "pct_vote_text_mismatch": grouped["vote_text_mismatch"].apply(
             lambda s: round(s.mean() * 100, 1)),
         "pct_short_playtime": grouped["short_playtime_flag"].apply(
-            lambda s: round(s.mean() * 100, 1)),
+            lambda s: round(s.astype("float64").mean() * 100, 1)),
         "median_playtime_at_review_hrs": grouped["playtime_at_review_hrs"].median(),
         "avg_votes_up": grouped["votes_up"].mean().round(1),
         "avg_word_count": grouped["word_count"].mean().round(1),
         "first_review_date": grouped["review_date"].min(),
         "last_review_date": grouped["review_date"].max(),
     }).reset_index()
-    steam_games = games.dropna(subset=["steam_appid"]).drop_duplicates("steam_appid")
-    summary["steam_appid"] = summary["steam_appid"].astype("Int64")
-    return summary.merge(steam_games, on="steam_appid", how="left")
+    catalog = games.assign(game_key=game_key(games)).dropna(subset=["game_key"]) \
+        .drop_duplicates("game_key")
+    merged = summary.merge(catalog, on="game_key", how="left")
+    merged["steam_appid"] = pd.to_numeric(merged["steam_appid"], errors="coerce").astype("Int64")
+    metrics = [c for c in summary.columns if c != "game_key"]
+    ids = ["steam_appid", "xbox_store_id"]
+    rest = [c for c in merged.columns if c not in ids + metrics + ["game_key"]]
+    return merged[ids + metrics + rest]
 
 
 def build_sentiment_validation_sample(reviews, sample_size=SENTIMENT_VALIDATION_SAMPLE_SIZE):
@@ -1337,6 +1511,8 @@ def build_sentiment_validation_sample(reviews, sample_size=SENTIMENT_VALIDATION_
     missing = set(columns) - set(reviews.columns)
     if missing:
         raise ValueError(f"Cleaned reviews are missing required columns: {sorted(missing)}")
+    if "xbox_store_id" in reviews.columns:
+        columns.insert(2, "xbox_store_id")
     if sample_size <= 0:
         raise ValueError("sample_size must be greater than zero.")
 
@@ -1434,6 +1610,10 @@ def main():
     print(f"      steam 2025.csv: {len(supplemental_reviews)} supplemental reviews")
     rows.extend(supplemental_reviews.to_dict("records"))
 
+    xbox_reviews = load_xbox_reviews()
+    print(f"      xbox-games-2025-written-reviews.csv: {len(xbox_reviews)} Xbox reviews")
+    rows.extend(xbox_reviews.to_dict("records"))
+
     if not rows:
         sys.exit("No reviews were retrieved.")
     reviews, log = clean_reviews(pd.DataFrame(rows))
@@ -1442,31 +1622,37 @@ def main():
     # ---- 6. write outputs --------------------------------------------------
     print("[6/6] Writing outputs...")
     game_cols = [
-        "steam_appid", "game_name", "game_type", "release_date", "price_usd", "genres",
+        "game_name", "game_type", "release_date", "price_usd", "genres", "platform",
         "developers", "developer_source", "publishers", "steam_pct_positive", "total_reviews",
         "review_score_desc", "steam_metacritic", "metacritic", "rawg_rating",
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",
         "igdb_themes", "igdb_game_modes", "igdb_perspectives", "igdb_platforms",
         "steam_categories", "steam_platforms",
+        "xbox_rank", "xbox_average_rating", "xbox_rating_count",
     ] + GENRE_OUTPUT_COLS
     game_cols = [c for c in game_cols if c in games_output.columns]
-    steam_games = games_output.dropna(subset=["steam_appid"]).drop_duplicates("steam_appid")
-    out = reviews.merge(steam_games[game_cols], on="steam_appid", how="left")
+    catalog = games_output.assign(game_key=game_key(games_output)) \
+        .dropna(subset=["game_key"]).drop_duplicates("game_key")
+    out = reviews.assign(game_key=game_key(reviews)).merge(
+        catalog[["game_key"] + game_cols], on="game_key", how="left")
     out = out.rename(columns={"total_reviews": "steam_total_reviews",
                               "review_score_desc": "steam_review_score_desc"})
     review_cols = [
-        "steam_appid", "game_name", "game_type", "release_date", "genres", "primary_genre",
+        "steam_appid", "xbox_store_id", "game_name", "platform", "game_type", "release_date",
+        "genres", "primary_genre",
         "genre_count", "genre_source", *GENRE_FLAG_COLS, "price_usd",
         "developers", "developer_source", "publishers", "steam_total_reviews", "steam_pct_positive",
         "steam_review_score_desc", "steam_metacritic", "metacritic", "rawg_rating",
         "rawg_esrb", "rawg_tags", "igdb_rating", "igdb_critic_rating", "igdb_follows",
         "igdb_themes", "igdb_game_modes", "igdb_perspectives", "igdb_platforms",
         "steam_categories", "steam_platforms",
+        "xbox_rank", "xbox_average_rating", "xbox_rating_count",
         "recommendation_id", "review_pull", "review_date", "review_month",
+        "review_title", "review_star_rating",
         "review_text", "word_count", "sentiment_label", "sentiment_score_100",
         "sentiment_rating", "sentiment_category", "sentiment_mixed",
         "sentiment_positive_share", "sentiment_negative_share", "vote_text_mismatch",
-        "votes_up", "votes_funny", "comment_count", "weighted_vote_score",
+        "votes_up", "votes_down", "votes_funny", "comment_count", "weighted_vote_score",
         "playtime_at_review_hrs", "playtime_total_hrs", "short_playtime_flag",
         "steam_purchase", "received_for_free", "early_access",
         "author_num_reviews", "author_num_games_owned", "data_source",
@@ -1486,6 +1672,19 @@ def main():
         if existing["manual_sentiment_label"].notna().any():
             print(f"      Keeping labeled {sample_path.name}; delete it to regenerate.")
             validation_sample = pd.read_csv(sample_path)
+            has_xbox = ("xbox_store_id" in validation_sample.columns
+                        and validation_sample["xbox_store_id"].notna().any())
+            if "xbox_store_id" in out.columns and not has_xbox:
+                # append unlabeled Xbox reviews; labeled Steam rows stay untouched
+                xbox_pool = out[out["xbox_store_id"].notna()]
+                xbox_sample = build_sentiment_validation_sample(
+                    xbox_pool, sample_size=len(validation_sample))
+                validation_sample = pd.concat([validation_sample, xbox_sample], ignore_index=True)
+                validation_sample["manual_sentiment_label"] = validation_sample[
+                    "manual_sentiment_label"].fillna("")
+                validation_sample["annotation_notes"] = validation_sample[
+                    "annotation_notes"].fillna("")
+                validation_sample.to_csv(sample_path, index=False, encoding="utf-8-sig")
     if not sample_path.exists() or validation_sample["manual_sentiment_label"].eq("").all():
         validation_sample.to_csv(sample_path, index=False, encoding="utf-8-sig")
     pd.DataFrame(log, columns=["step", "rows"]).to_csv(OUT_DIR / "cleaning_log.csv", index=False)
