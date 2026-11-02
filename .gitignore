@@ -1,2 +1,5 @@
 # Large downloaded public datasets (regenerate with AI Development/prepare_training_data.py)
 Data CSVs/
+
+# Visual Studio local cache (paths exceed the Windows limit)
+.vs/
