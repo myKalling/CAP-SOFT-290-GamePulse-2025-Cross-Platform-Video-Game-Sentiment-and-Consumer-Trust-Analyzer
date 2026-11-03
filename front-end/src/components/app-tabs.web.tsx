@@ -18,7 +18,6 @@ import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
         <CustomTabList>
 
@@ -43,6 +42,7 @@ export default function AppTabs() {
           
         </CustomTabList>
       </TabList>
+      <TabSlot style={{ height: '100%' }} />
     </Tabs>
   );
 }
@@ -91,7 +91,6 @@ export function CustomTabList(props: TabListProps) {
 
 const styles = StyleSheet.create({
   tabListContainer: {
-    position: 'absolute',
     width: '100%',
     padding: Spacing.three,
     justifyContent: 'center',
