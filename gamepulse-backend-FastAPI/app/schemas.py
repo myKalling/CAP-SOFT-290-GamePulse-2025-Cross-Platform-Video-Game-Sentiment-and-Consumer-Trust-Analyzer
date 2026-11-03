@@ -3,6 +3,29 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict
 
 
+class SentimentRequest(BaseModel):
+    text: str
+
+
+class SentimentResult(BaseModel):
+    score_100: float
+    positive_share: float
+    negative_share: float
+    mixed: bool
+    rating: int
+    category: str
+
+
+class GameReviewSummary(BaseModel):
+    GameID: int
+    Title: str
+    ReviewCount: int
+    AverageSentiment: float | None
+    PositiveReviews: int
+    NegativeReviews: int
+    NeutralReviews: int
+
+
 class APIModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
