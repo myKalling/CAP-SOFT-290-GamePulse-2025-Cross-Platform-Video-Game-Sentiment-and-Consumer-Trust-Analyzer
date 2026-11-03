@@ -34,9 +34,11 @@ Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
 - `GET /developers` and `GET /platforms`
 - `GET /games?limit=100&offset=0&developer_id=1`
 - `GET /games/{game_id}`
+- `GET /games/{game_id}/summary` — review count, average stored sentiment, and positive/negative/neutral counts (stored values above/below/equal to zero).
 - `GET /game-platforms?game_id=1&limit=100&offset=0`
 - `GET /genres?game_id=1&limit=100&offset=0`
 - `GET /reviews?game_id=1&sentiment=1&limit=100&offset=0`
+- `POST /sentiment` — infer sentiment from review text. Send JSON such as `{"text":"Great gameplay, but the game is buggy."}` to receive a 0–100 score, positive/negative shares, mixed flag, and five-band rating.
 
 List endpoints cap `limit` at 500. Review sentiment can be filtered by its
 stored integer value. The included backup currently contains the schema but no rows, so
