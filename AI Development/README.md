@@ -105,3 +105,6 @@ Catalog data → Steam → RAWG detail → IGDB title search → RAWG title sear
 - **HTTP errors for odd titles** – non-fatal; the script retries and moves on.
 - **PowerShell blocks activation** – run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, or call
   `.\.venv\Scripts\python.exe gamepulse_pipeline.py` directly.
+
+
+ToDo:
