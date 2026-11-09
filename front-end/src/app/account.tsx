@@ -1,40 +1,116 @@
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function AccountScreen() {
+  const [accountName, setAccountName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
-const Account = () => {
+  const signUp = (): void => {
+    console.log("Sign Up pressed");
+  };
+
+  const login = (): void => {
+    console.log("Log In pressed");
+  };
+
   return (
-    <ThemedView style={[styles.container, { flex: 1 }]}>
-      <SafeAreaView style={[styles.safeArea, { flex: 1 }]}>
-        <ThemedText type="title" style={styles.title}>
-          Account
-        </ThemedText>
-        <ThemedText>Manage your account settings and preferences here.</ThemedText>
-      </SafeAreaView>
-    </ThemedView>
+    <View style={styles.container}>
+      <Text style={styles.title}>
+        Sign Up / Log In
+      </Text>
+
+      <View style={styles.form}>
+        <Text style={styles.label}>
+          Account Name
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          value={accountName}
+          onChangeText={setAccountName}
+          placeholder="Enter account name here"
+        />
+
+        
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.signUpButton}
+            onPress={signUp}
+          >
+            <Text style={styles.buttonText}>
+              Sign Up
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.errorText}>
+          {error}
+        </Text>
+      </View>
+    </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    padding: 24,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
+
   title: {
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+
+  form: {
+    padding: 20,
+    borderWidth: 2,
+    marginHorizontal: 100,
+  },
+
+  label: {
+    fontWeight: "bold",
+    marginBottom: 6,
+    marginTop: 12,
+    textAlign: "center",
+  },
+
+  input: {
+    borderWidth: 1,
+    padding: 12,
+    textAlign: "center",
+    
+  },
+
+  buttonContainer: {
+    flexDirection: "row",
+    marginTop: 20,
+    justifyContent: "center",
+  },
+
+  signUpButton: {
+    padding: 12,
+    marginRight: 10,
+    textAlign: "center",
+  },
+
+  buttonText: {
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+
+  errorText: {
+    marginTop: 10,
   },
 });
 
-export default Account;
