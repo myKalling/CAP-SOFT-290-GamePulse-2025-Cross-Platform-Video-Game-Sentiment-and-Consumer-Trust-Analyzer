@@ -1,10 +1,13 @@
 """SQL Server connection helpers for the GamePulse API."""
 
 import os
+import logging
 from collections.abc import Iterator
 
 import pyodbc
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
 
 
 def connect() -> pyodbc.Connection:
@@ -20,10 +23,15 @@ def connect() -> pyodbc.Connection:
     username = os.getenv("GAMEPULSE_SQL_USER")
     password = os.getenv("GAMEPULSE_SQL_PASSWORD")
 
+    if bool(username) != bool(password):
+        logger.error("SQL authentication requires both GAMEPULSE_SQL_USER and GAMEPULSE_SQL_PASSWORD")
+        raise HTTPException(status_code=503, detail="Invalid database authentication configuration")
+
     parts = [
         f"DRIVER={{{driver}}}",
         f"SERVER={server}",
         f"DATABASE={database}",
+        "APP=GamePulse FastAPI",
         "Encrypt=yes",
         "TrustServerCertificate=yes",
     ]
@@ -40,6 +48,7 @@ def get_connection() -> Iterator[pyodbc.Connection]:
     try:
         connection = connect()
     except pyodbc.Error as exc:
+        logger.exception("Could not connect to the GamePulse database")
         raise HTTPException(
             status_code=503,
             detail="Could not connect to the GamePulse database",

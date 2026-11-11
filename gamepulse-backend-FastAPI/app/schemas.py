@@ -43,24 +43,26 @@ class Platform(APIModel):
 class Game(APIModel):
     GameID: int
     Title: str
-    DeveloperID: int
-    DeveloperName: str
+    Price: float | None
 
 
 class GamePlatform(APIModel):
     GamePlatformsID: int
     GameID: int
+    Title: str
+    Price: float | None
     PlatformID: int
     PlatformName: str
-    ReleaseDate: date
-    Price: float
 
 
 class Review(APIModel):
     ReviewID: int
-    GamePlatformsID: int
-    Review: str
-    Sentiment: int
+    GameID: int
+    Title: str
+    Review: str | None
+    Sentiment: float
+    ReviewDate: date | None
+    UserID: int | None
 
 
 class GameGenre(APIModel):
