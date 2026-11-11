@@ -7,19 +7,49 @@ import {
   StyleSheet,
 } from "react-native";
 
+import { useAuth } from "../../authorization/authorization-login";
+
 export default function AccountScreen() {
+  const { username, signIn, signOut } = useAuth();
   const [accountName, setAccountName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
 
   const signUp = (): void => {
-    console.log("Sign Up pressed");
+    const name = accountName.trim();
+    if (!name) {
+      setError("Please enter an account name.");
+      return;
+    }
+    setError("");
+    signIn(name);
   };
 
   const login = (): void => {
-    console.log("Log In pressed");
+    signUp();
   };
+
+  if (username) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>
+          Signed in as {username}
+        </Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.signUpButton}
+            onPress={signOut}
+          >
+            <Text style={styles.buttonText}>
+              Sign Out
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -47,6 +77,15 @@ export default function AccountScreen() {
           >
             <Text style={styles.buttonText}>
               Sign Up
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signUpButton}
+            onPress={login}
+          >
+            <Text style={styles.buttonText}>
+              Log In
             </Text>
           </TouchableOpacity>
         </View>
