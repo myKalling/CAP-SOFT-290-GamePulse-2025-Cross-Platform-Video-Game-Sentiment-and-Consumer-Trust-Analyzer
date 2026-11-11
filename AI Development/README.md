@@ -98,6 +98,52 @@ lexicon (e.g. "buggy", "p2w", "goated"), scores each clause; positive and negati
 
 Catalog data → Steam → RAWG detail → IGDB title search → RAWG title search → RAWG development-team credits.
 
+## 7. Sentiment validation (held-out split)
+
+`python sentiment_validation.py` (add `--refresh-sample` to rebuild the Xbox rows of the sample) writes
+`output/sentiment_validation_split.csv`, `sentiment_validation_results.csv` and `sentiment_validation_summary.csv`.
+
+**Sample** (`gamepulse_sentiment_validation_sample.csv`, 1,100 reviews): 500 Steam reviews (AI-assigned
+positive/negative/neutral/mixed labels, not human-verified) + 600 Xbox written reviews drawn class-balanced
+(200 each of 4–5★, 3★, 1–2★) and labeled by the reviewer's stars (a proxy; Xbox has no "mixed" ground truth). A
+plain random Xbox draw is ~64% positive with few 3★ rows, so it was rebalanced to leave enough neutral rows to test.
+
+**Split:** 748 train / 132 validation / 220 held-out test (about 68/12/20), seed 42, stratified by platform + label,
+made before any fitting and recorded per review in `sentiment_validation_split.csv`. TF-IDF is fit on train only. The
+validation slice is never trained on; it logs `val_loss`/`val_accuracy` every epoch in
+`sentiment_validation_results.csv` and is used to choose the epoch count. The test rows are scored once at the end.
+
+**Epochs: 30.** At 10 epochs the sigmoid network had not learned (it predicted "positive" for everything). On the
+validation slice, relu/linear reach their lowest loss at epoch 22 and sigmoid at epoch 30, with overfitting beyond
+that (train accuracy ≈ 0.99 vs validation ≈ 0.73), so 30 is a compromise that is fair to all three.
+
+**Results on the 220 held-out reviews** (NN trained 30 epochs on the 533 train positive/negative rows and scored on
+the 156 test positive/negative rows):
+
+| Model | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|
+| NN, relu | 0.782 | 0.796 | 0.848 | 0.821 |
+| NN, linear | 0.782 | 0.790 | 0.859 | 0.823 |
+| NN, sigmoid | 0.808 | 0.772 | 0.957 | 0.854 |
+| VADER pipeline, binary (score ≥ 50) | 0.763 | 0.739 | 0.924 | 0.821 |
+| VADER pipeline, 3-class (≥60 / 40–60 / <40), macro | 0.586 | 0.608 | 0.556 | 0.556 |
+
+**Role of mixed/neutral examples.** The network is binary, so neutral and mixed reviews are never used to train it or
+to compute its precision/recall; forcing them into either class would teach it noise. They stay in the held-out split
+and test the VADER pipeline's middle band: of held-out reviews, 54% of neutral and 45% of mixed land in the mid band
+(score 40–60), against 16% of positive; mean scores are positive 74, neutral 56, mixed 62, negative 49. Mixed/neutral
+reviews therefore sit between the polarities as intended, but only partly: many are still pushed to a side.
+
+**Separate VADER pipeline.** `gamepulse_pipeline.py` scores every review with clause-level VADER plus a gaming lexicon
+(no training, no labels), producing `sentiment_score_100`, ratings and the `sentiment_mixed` flag used in the outputs.
+The neural network is only a validation experiment and does not feed those outputs. VADER is evaluated on the same
+test rows. It is competitive with the network on positive-vs-negative (F1 0.82 vs 0.82–0.85) but weak on negatives
+(3-class negative recall 0.36, mean negative score 49): complaints are often phrased neutrally or with sarcasm.
+
+Caveats: ~156 binary test rows give roughly ±7 points of uncertainty, so the differences between the three
+activations and VADER are not statistically meaningful; the validation slice is small (94 binary rows), so the
+chosen epoch count is approximate; labels are proxies, not human annotation.
+
 ## Troubleshooting
 
 - **"RAWG_API_KEY" / IGDB errors** – check `.env` is in the same folder as the script and has no quotes or spaces.

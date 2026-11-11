@@ -7,6 +7,7 @@ import pyodbc
 from fastapi import Depends, FastAPI, HTTPException, Query
 
 from app.database import get_connection
+from app.procedures import router as procedures_router
 from app.schemas import (
     Developer, Game, GameGenre, GamePlatform, GameReviewSummary, Platform,
     Review, SentimentRequest, SentimentResult,
@@ -22,6 +23,7 @@ app = FastAPI(
     description="Read game, platform, developer, genre, and sentiment review data.",
     version="1.0.0",
 )
+app.include_router(procedures_router)
 
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
 
@@ -62,8 +64,9 @@ def infer_sentiment(text: str) -> dict:
     else:
         score = round(50 + 50 * max(-1.0, min(1.0, ((positive - negative) / opinionated) * 1.25)), 1)
         total = positive + negative
-        positive_share, negative_share = round(positive / total, 2), round(negative / total, 2)
+        positive_share, negative_share = positive / total, negative / total
         mixed = min(positive_share, negative_share) >= 0.25
+        positive_share, negative_share = round(positive_share, 2), round(negative_share, 2)
     rating = min(int(score // 20) + 1, 5)
     return {
         "score_100": score, "positive_share": positive_share,
@@ -103,10 +106,10 @@ def score_sentiment(request: SentimentRequest) -> dict:
 @app.get("/health/db")
 def database_health(connection: Connection) -> dict[str, str]:
     try:
-        fetch_one(connection, "SELECT DB_NAME() AS database_name")
+        result = fetch_one(connection, "SELECT DB_NAME() AS database_name")
     except pyodbc.Error as exc:
         raise HTTPException(status_code=503, detail="Could not connect to the GamePulse database") from exc
-    return {"status": "connected", "database": "GamePulse"}
+    return {"status": "connected", "database": result["database_name"]}
 
 
 @app.get("/developers", response_model=list[Developer])
@@ -133,13 +136,15 @@ def list_games(
     developer_id: int | None = Query(default=None, gt=0),
 ) -> list[dict]:
     sql = """
-        SELECT g.GameID, g.Title, g.DeveloperID, d.DeveloperName
+        SELECT g.GameID, g.Title, g.Price
         FROM dbo.Game AS g
-        INNER JOIN dbo.Developer AS d ON d.DeveloperID = g.DeveloperID
     """
     params: tuple = ()
     if developer_id is not None:
-        sql += " WHERE g.DeveloperID = ?"
+        sql += """ WHERE EXISTS (
+            SELECT 1 FROM dbo.GameDevelopers AS gd
+            WHERE gd.GameID = g.GameID AND gd.DeveloperID = ?
+        )"""
         params = (developer_id,)
     sql += " ORDER BY g.Title OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
     return fetch_all(connection, sql, (*params, offset, limit))
@@ -150,9 +155,8 @@ def get_game(game_id: int, connection: Connection) -> dict:
     game = fetch_one(
         connection,
         """
-        SELECT g.GameID, g.Title, g.DeveloperID, d.DeveloperName
+        SELECT g.GameID, g.Title, g.Price
         FROM dbo.Game AS g
-        INNER JOIN dbo.Developer AS d ON d.DeveloperID = g.DeveloperID
         WHERE g.GameID = ?
         """,
         (game_id,),
@@ -170,12 +174,11 @@ def get_game_review_summary(game_id: int, connection: Connection) -> dict:
         SELECT g.GameID, g.Title,
                COUNT(r.ReviewID) AS ReviewCount,
                AVG(CAST(r.Sentiment AS FLOAT)) AS AverageSentiment,
-               COALESCE(SUM(CASE WHEN r.Sentiment > 0 THEN 1 ELSE 0 END), 0) AS PositiveReviews,
-               COALESCE(SUM(CASE WHEN r.Sentiment < 0 THEN 1 ELSE 0 END), 0) AS NegativeReviews,
-               COALESCE(SUM(CASE WHEN r.Sentiment = 0 THEN 1 ELSE 0 END), 0) AS NeutralReviews
+               COALESCE(SUM(CASE WHEN r.Sentiment >= 60 THEN 1 ELSE 0 END), 0) AS PositiveReviews,
+               COALESCE(SUM(CASE WHEN r.Sentiment < 40 THEN 1 ELSE 0 END), 0) AS NegativeReviews,
+               COALESCE(SUM(CASE WHEN r.Sentiment >= 40 AND r.Sentiment < 60 THEN 1 ELSE 0 END), 0) AS NeutralReviews
         FROM dbo.Game AS g
-        LEFT JOIN dbo.GamePlatforms AS gp ON gp.GameID = g.GameID
-        LEFT JOIN dbo.Review AS r ON r.GamePlatformsID = gp.GamePlatformsID
+        LEFT JOIN dbo.Review AS r ON r.GameID = g.GameID
         WHERE g.GameID = ?
         GROUP BY g.GameID, g.Title
         """,
@@ -196,16 +199,17 @@ def list_game_platforms(
     offset: int = Query(default=0, ge=0),
 ) -> list[dict]:
     sql = """
-        SELECT gp.GamePlatformsID, gp.GameID, gp.PlatformID, p.PlatformName,
-               gp.ReleaseDate, gp.Price
+        SELECT gp.GamePlatformsID, gp.GameID, g.Title, g.Price,
+               gp.PlatformID, p.PlatformName
         FROM dbo.GamePlatforms AS gp
+        INNER JOIN dbo.Game AS g ON g.GameID = gp.GameID
         INNER JOIN dbo.Platform AS p ON p.PlatformID = gp.PlatformID
     """
     params: tuple = ()
     if game_id is not None:
         sql += " WHERE gp.GameID = ?"
         params = (game_id,)
-    sql += " ORDER BY gp.GameID, p.PlatformName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
+    sql += " ORDER BY g.Title, p.PlatformName OFFSET ? ROWS FETCH NEXT ? ROWS ONLY"
     return fetch_all(connection, sql, (*params, offset, limit))
 
 
@@ -233,19 +237,20 @@ def list_game_genres(
 def list_reviews(
     connection: Connection,
     game_id: int | None = Query(default=None, gt=0),
-    sentiment: int | None = Query(default=None),
+    sentiment: float | None = Query(default=None, ge=0, le=100),
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
 ) -> list[dict]:
     sql = """
-        SELECT r.ReviewID, r.GamePlatformsID, r.Review, r.Sentiment
+        SELECT r.ReviewID, r.GameID, g.Title, r.Review,
+               r.Sentiment, r.ReviewDate, r.UserID
         FROM dbo.Review AS r
-        INNER JOIN dbo.GamePlatforms AS gp ON gp.GamePlatformsID = r.GamePlatformsID
+        INNER JOIN dbo.Game AS g ON g.GameID = r.GameID
     """
     conditions = []
-    params: list[int] = []
+    params: list[int | float] = []
     if game_id is not None:
-        conditions.append("gp.GameID = ?")
+        conditions.append("r.GameID = ?")
         params.append(game_id)
     if sentiment is not None:
         conditions.append("r.Sentiment = ?")
