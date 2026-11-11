@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import FreeGamesList from '@/components/themed-free-games-list';
 import PaidGamesList from '@/components/themed-paid-games-list';
+import { AddReviewButton } from '../../authorization/add-review-button';
 
 export default function GamesScreen() {
   return (
@@ -22,6 +23,7 @@ export default function GamesScreen() {
               Free to Play
             </ThemedText>
             <FreeGamesList />
+            {/* <AddReviewButton /> */}
           </ThemedView>
 
           <ThemedView style={styles.column}>
@@ -29,6 +31,7 @@ export default function GamesScreen() {
               Pay to Play
             </ThemedText>
             <PaidGamesList />
+            {/* <AddReviewButton /> */}
           </ThemedView>
         </ThemedView>
 
