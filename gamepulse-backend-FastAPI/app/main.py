@@ -5,6 +5,7 @@ from typing import Annotated
 
 import pyodbc
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import get_connection
 from app.procedures import router as procedures_router
@@ -22,6 +23,12 @@ app = FastAPI(
     title="GamePulse API",
     description="Read game, platform, developer, genre, and sentiment review data.",
     version="1.0.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8081", "http://127.0.0.1:8081"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 app.include_router(procedures_router)
 
