@@ -26,6 +26,21 @@ class APIEndpointTests(unittest.TestCase):
         self.assertIs(learning_app, app)
         self.assertEqual(self.client.get("/").status_code, 200)
 
+    def test_expo_web_cors_preflight(self):
+        response = self.client.options(
+            "/procedures/games/top/free",
+            headers={
+                "Origin": "http://localhost:8081",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.headers["access-control-allow-origin"],
+            "http://localhost:8081",
+        )
+        self.assertIn("GET", response.headers["access-control-allow-methods"])
+
     def test_direct_list_routes_and_filters(self):
         cases = [
             ("/developers", ("DeveloperID", "DeveloperName"), (1, "Studio"), ()),
