@@ -1,0 +1,5 @@
+/* GamePulse - Mobile-First Adaptive Logo */
+.gamepulse-logo{width:100%;height:auto;display:block}
+@media (min-width:640px){.gamepulse-logo{max-width:220px}}
+@media (min-width:1024px){.gamepulse-logo{max-width:320px}}
+/* Usage: <picture><source srcset="logo.svg" type="image/svg+xml"><img src="logo_256w.png" class="gamepulse-logo" alt="GamePulse"></picture> */
