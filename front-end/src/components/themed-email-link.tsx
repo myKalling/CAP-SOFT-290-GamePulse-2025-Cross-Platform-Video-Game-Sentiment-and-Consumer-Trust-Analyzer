@@ -32,6 +32,7 @@ const EmailLink: React.FC<EmailLinkProps> = ({ recipient, subject = "Enter Subje
 
 const styles = StyleSheet.create({
   link: {
+    textAlign: 'center',
     color: "#0078D4",
     textDecorationLine: "underline",
     fontWeight: "bold",

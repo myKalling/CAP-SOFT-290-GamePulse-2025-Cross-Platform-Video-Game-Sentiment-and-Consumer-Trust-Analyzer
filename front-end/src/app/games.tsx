@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,9 +13,28 @@ export default function GamesScreen() {
     <ThemedView style={[styles.container, {flex: 1}]}>
       <SafeAreaView style={[styles.safeArea, {flex: 1}]}>
 
-        <ThemedText type="title" style={styles.title}>
-          Top 20 Games of 2025
-        </ThemedText>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleRow}>
+            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+              Top
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: '#ba191b', marginRight: Spacing.two }]}>
+              20
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: 'black' }]}>
+              Games
+            </ThemedText>
+          </View>
+          <View style={styles.titleRow}>
+            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+              of
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+              2025
+            </ThemedText>
+          </View>
+        </View>
+                
     
         <ThemedView style={styles.columnsContainer}>
           <ThemedView style={styles.column}>
@@ -69,5 +88,13 @@ const styles = StyleSheet.create({
   },
   columnHeader: {
     textAlign: 'center',
+    
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
