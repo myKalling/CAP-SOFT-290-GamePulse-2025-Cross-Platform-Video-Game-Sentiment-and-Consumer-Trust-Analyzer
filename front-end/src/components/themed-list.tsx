@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 
 import EmailLink from './themed-email-link';
+import { ThemedText } from './themed-text';
 
 interface ListItem {
   item: string;
@@ -15,8 +16,8 @@ export default function ThemedList({ items }: { items: ListItem[] }) {
       {items.map((listItem, index) => (
         // unicode bullet
         <View key={index} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text style={{ marginRight: 8 }}>•</Text>
-          <Text>{listItem.item}</Text>
+          <ThemedText style={{ marginRight: 8 }}>•</ThemedText>
+          <ThemedText>{listItem.item}</ThemedText>
           {listItem.link ? (
             <EmailLink recipient={listItem.link.replace(/^mailto:/, '')} />
           ) : null}
