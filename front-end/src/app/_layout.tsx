@@ -4,6 +4,7 @@ import { useColorScheme, View, Text, StyleSheet } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
+import { ExternalLink } from '@/components/external-link';
 import { AuthProvider } from '../../authorization/authorization-login';
 
 SplashScreen.preventAutoHideAsync();
@@ -12,13 +13,17 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={DefaultTheme}>
         <View style={styles.container}>
           <AnimatedSplashOverlay />
           <AppTabs />
           <View style={styles.footer}>
             <Text style={styles.footerText}>© 2026 GamePulse</Text>
-            <Text style={styles.footerText}><a href="https://github.com/myKalling/CAP-SOFT-290-GamePulse-2025-Cross-Platform-Video-Game-Sentiment-and-Consumer-Trust-Analyzer" target="_blank" rel="noopener noreferrer">Shared Github</a></Text>
+            <ExternalLink
+              href="https://github.com/myKalling/CAP-SOFT-290-GamePulse-2025-Cross-Platform-Video-Game-Sentiment-and-Consumer-Trust-Analyzer"
+              style={styles.footerText}>
+              Shared Github
+            </ExternalLink>
           </View>
           
         </View>
