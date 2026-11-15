@@ -7,7 +7,7 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 
 import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
@@ -42,7 +42,7 @@ export default function AppTabs() {
           
         </CustomTabList>
       </TabList>
-      <TabSlot style={{ height: '100%' }} />
+      <TabSlot style={{ flex: 1 }} />
     </Tabs>
   );
 }
@@ -51,9 +51,13 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+        style={[
+          styles.tabButtonView,
+          { backgroundColor: isFocused ? Colors.tabs.backgroundSelected : Colors.tabs.background },
+        ]}>
+        <ThemedText
+          type="small"
+          style={{ color: isFocused ? Colors.tabs.text : Colors.tabs.textSecondary }}>
           {children}
         </ThemedText>
       </ThemedView>
@@ -62,13 +66,10 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 }
 
 export function CustomTabList(props: TabListProps) {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
-
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
+      <ThemedView style={[styles.innerContainer, { backgroundColor: Colors.tabs.background }]}>
+        <ThemedText type="smallBold" style={[styles.brandText, { color: Colors.tabs.text }]}>
           Expo Starter
         </ThemedText>
 
@@ -76,9 +77,9 @@ export function CustomTabList(props: TabListProps) {
 
         <ExternalLink href="https://docs.expo.dev" asChild>
           <Pressable style={styles.externalPressable}>
-            <ThemedText type="link">Docs</ThemedText>
+            <ThemedText type="link" style={{ color: Colors.tabs.textSecondary }}>Docs</ThemedText>
             <SymbolView
-              tintColor={colors.text}
+              tintColor={Colors.tabs.textSecondary}
               name={{ ios: 'arrow.up.right.square', web: 'link' }}
               size={12}
             />

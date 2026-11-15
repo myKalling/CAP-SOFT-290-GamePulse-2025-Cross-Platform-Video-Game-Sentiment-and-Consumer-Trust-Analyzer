@@ -8,6 +8,10 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../authorization/authorization-login";
+import { ThemedView } from "@/components/themed-view";
+import { ThemedText } from "@/components/themed-text";
+import { Spacing } from "@/constants/theme";
+
 
 export default function AccountScreen() {
   const { username, signIn, signOut } = useAuth();
@@ -32,7 +36,7 @@ export default function AccountScreen() {
 
   if (username) {
     return (
-      <View style={styles.container}>
+      <ThemedView style={styles.container}>
         <Text style={styles.title}>
           Signed in as {username}
         </Text>
@@ -47,15 +51,18 @@ export default function AccountScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ThemedView>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Sign Up / Log In
-      </Text>
+    <ThemedView style={styles.container}>
+      <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+        Sign Up /
+      </ThemedText>
+      <ThemedText type="title" style={[styles.title, { color: '#161a1d' }]}>
+         Log In
+      </ThemedText>
 
       <View style={styles.form}>
         <Text style={styles.label}>
@@ -94,7 +101,7 @@ export default function AccountScreen() {
           {error}
         </Text>
       </View>
-    </View>
+    </ThemedView>
   );
 }
 
@@ -114,7 +121,7 @@ const styles = StyleSheet.create({
   form: {
     padding: 20,
     borderWidth: 2,
-    marginHorizontal: 100,
+    
   },
 
   label: {

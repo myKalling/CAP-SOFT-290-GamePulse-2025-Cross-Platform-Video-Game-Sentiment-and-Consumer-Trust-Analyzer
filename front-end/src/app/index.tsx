@@ -15,22 +15,28 @@ export default function HomeScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="title" style={styles.title}>
-         GamePulse
-        </ThemedText>
+        <View style={styles.titleRow}>
+          <ThemedText type="title" style={[styles.title, { color: 'black' }]}>
+            Game
+          </ThemedText>
+          <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+            Pulse
+          </ThemedText>
+        </View>
 
-        <ThemedText style={styles.content}>
+        <ThemedText style={styles.borderColor}>
          Find the top 20 games from 2025 for both free-to-play and pay-to-play. {"\n"} {"\n"}
           Real reviews written from players across multiple platforms such as Xbox, Steam, RAWG and IGDB.{"\n"} {"\n"}
           You can also add your own review. Your opinion matters! {"\n"}
         </ThemedText>
 
         <ThemedText style={styles.content}>
-         Click below to sign in or browse through top games. No sign in necessary!
+         Click below to sign in, browse through games or learn more about us.
         </ThemedText>
-        <View style={styles.link}>
-          <Link href="/account" style={{ marginRight: 10 }}>Login</Link>
-          <Link href="/games" style={{ marginRight: 10 }}>Games</Link>
+        <View style={styles.link} >
+          <Link href="/account" style={{ marginRight: 5, ...styles.coloredBlock }}>Login</Link>
+          <Link href="/games" style={{ marginRight: 5, ...styles.coloredBlock }}>Games</Link>
+          <Link href="/about" style={{ marginRight: 5, ...styles.coloredBlock }}>About Us</Link>
         </View>
       </SafeAreaView>
     </ThemedView>
@@ -54,6 +60,10 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   content: {
     gap: Spacing.three,
     alignSelf: 'stretch',
@@ -71,5 +81,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
     textAlign: 'center',
+  },
+  coloredBlock: {
+    backgroundColor: "#ba191c", // block color
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8, // rounded corners
+  },
+   borderColor:{
+    textAlign: 'center',
+    gap: Spacing.three,
+    alignSelf: 'stretch',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.four,
+    borderRadius: Spacing.four,
+    backgroundColor: '#dedce4',
   },
 });
