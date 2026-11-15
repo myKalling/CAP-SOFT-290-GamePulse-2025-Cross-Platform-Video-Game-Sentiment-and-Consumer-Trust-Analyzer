@@ -14,25 +14,51 @@ import { Spacing } from "@/constants/theme";
 
 
 export default function AccountScreen() {
-  const { username, signIn, signOut } = useAuth();
+  const { username, isLoading, storageError, signIn, signOut } = useAuth();
   const [accountName, setAccountName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const signUp = (): void => {
+  const signUp = async (): Promise<void> => {
     const name = accountName.trim();
     if (!name) {
       setError("Please enter an account name.");
       return;
     }
     setError("");
-    signIn(name);
+    setIsSubmitting(true);
+    try {
+      await signIn(name);
+    } catch (storageError) {
+      console.error("Unable to save the account:", storageError);
+      setError("Unable to save your account. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const login = (): void => {
-    signUp();
+  const logout = async (): Promise<void> => {
+    setError("");
+    setIsSubmitting(true);
+    try {
+      await signOut();
+    } catch (storageError) {
+      console.error("Unable to remove the saved account:", storageError);
+      setError("Unable to sign out. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading || storageError) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedText>{storageError ?? "Loading account..."}</ThemedText>
+      </ThemedView>
+    );
+  }
 
   if (username) {
     return (
@@ -44,13 +70,15 @@ export default function AccountScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.signUpButton}
-            onPress={signOut}
+            onPress={logout}
+            disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
               Sign Out
             </Text>
           </TouchableOpacity>
         </View>
+        <Text style={styles.errorText}>{error}</Text>
       </ThemedView>
     );
   }
@@ -81,6 +109,7 @@ export default function AccountScreen() {
           <TouchableOpacity
             style={styles.signUpButton}
             onPress={signUp}
+            disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
               Sign Up
@@ -89,7 +118,8 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={styles.signUpButton}
-            onPress={login}
+            onPress={signUp}
+            disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
               Log In

@@ -14,6 +14,7 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import type { ComponentProps } from 'react';
 
 export default function AppTabs() {
   return (
@@ -47,7 +48,10 @@ export default function AppTabs() {
   );
 }
 
-export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+type TabButtonProps = Omit<TabTriggerSlotProps, 'ref'> &
+  Pick<ComponentProps<typeof Pressable>, 'ref'>;
+
+export function TabButton({ children, isFocused, ...props }: TabButtonProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
@@ -94,6 +98,7 @@ const styles = StyleSheet.create({
   tabListContainer: {
     width: '100%',
     padding: Spacing.three,
+    marginBottom: Spacing.three,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
@@ -103,8 +108,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.five,
     borderRadius: Spacing.five,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     flexGrow: 1,
+    flexShrink: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },

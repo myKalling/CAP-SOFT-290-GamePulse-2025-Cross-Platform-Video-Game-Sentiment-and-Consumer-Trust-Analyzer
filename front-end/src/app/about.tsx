@@ -69,9 +69,7 @@ export default function AboutScreen() {
             Github Link
           </ThemedText> 
                   <ExternalLink style={{ textAlign: 'center' }} href="https://github.com/myKalling/CAP-SOFT-290-GamePulse-2025-Cross-Platform-Video-Game-Sentiment-and-Consumer-Trust-Analyzer" >
-                    <Pressable>
                       <ThemedText style={{ textDecorationLine: 'underline' }} type="link"> Shared GitHub</ThemedText>
-                    </Pressable>
                   </ExternalLink>
         </ThemedView>
         <ThemedView style={styles.borderColor}>
