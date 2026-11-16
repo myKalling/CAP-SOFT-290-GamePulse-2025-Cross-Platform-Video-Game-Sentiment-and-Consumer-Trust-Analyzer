@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
+import ReviewInput from '@/constants/theme-user-review-input';
 
 const FREEITEMS = [
   { id: 1, name: ' Where Winds Meet' },
@@ -27,9 +28,12 @@ export default function FreeGamesList() {
         data={FREEITEMS}
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
-          <Pressable onPress={() => setSelected(item.name)}>
-            <Text style={ink}>{item.name}</Text>
-          </Pressable>
+          <View>
+            <Pressable onPress={() => setSelected(item.name)}>
+              <Text style={ink}>{item.name}</Text>
+            </Pressable>
+            <ReviewInput gameName={item.name} />
+          </View>
         )}
       />
       {selected != null && <Text style={ink}>{`Selected: ${selected}`}</Text>}
