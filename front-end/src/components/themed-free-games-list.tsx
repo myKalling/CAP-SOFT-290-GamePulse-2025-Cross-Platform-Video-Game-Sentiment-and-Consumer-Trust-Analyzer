@@ -28,9 +28,12 @@ export default function FreeGamesList() {
         data={FREEITEMS}
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
-          <Pressable onPress={() => setSelected(item.name)}>
-            <Text style={ink}>{item.name}</Text>
-          </Pressable>
+          <View>
+            <Pressable onPress={() => setSelected(item.name)}>
+              <Text style={ink}>{item.name}</Text>
+            </Pressable>
+            <ReviewInput gameName={item.name} />
+          </View>
         )}
       />
       {selected != null && <Text style={ink}>{`Selected: ${selected}`}</Text>}

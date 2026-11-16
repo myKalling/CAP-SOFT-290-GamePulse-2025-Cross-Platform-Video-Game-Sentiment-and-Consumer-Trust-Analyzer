@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { FlatList, Pressable, Text, View } from 'react-native';
+
+import ReviewInput from '@/constants/theme-user-review-input';
+
 const PAYITEMS = [
   { id: 1, name: ' R.E.P.O' },
   { id: 2, name: 'Hollow Knight: Silksong' },
@@ -25,9 +28,12 @@ export default function PaidGamesList() {
         data={PAYITEMS}
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
-          <Pressable onPress={() => setSelected(item.name)}>
-            <Text style={ink}>{item.name}</Text>
-          </Pressable>
+          <View>
+            <Pressable onPress={() => setSelected(item.name)}>
+              <Text style={ink}>{item.name}</Text>
+            </Pressable>
+            <ReviewInput gameName={item.name} />
+          </View>
         )}
       />
       {selected != null && <Text style={ink}>{`Selected: ${selected}`}</Text>}
