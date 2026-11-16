@@ -7,6 +7,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import FreeGamesList from '@/components/themed-free-games-list';
 import PaidGamesList from '@/components/themed-paid-games-list';
 import { AddReviewButton } from '../../authorization/add-review-button';
+import { Link } from 'expo-router';
 
 export default function GamesScreen() {
   return (
@@ -54,12 +55,26 @@ export default function GamesScreen() {
           </ThemedView>
         </ThemedView>
 
+        <ThemedView style={styles.footer}>
+          <ThemedView style={styles.link} >
+            <Link href="/credits" style={{ marginRight: 5, ...styles.coloredBlock }}>Credits</Link>
+          </ThemedView>
+        </ThemedView>
+
       </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#888',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -96,5 +111,21 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+   link: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: Spacing.three,
+    alignSelf: 'stretch',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.four,
+    borderRadius: Spacing.four,
+    textAlign: 'center',
+  },
+   coloredBlock: {
+    backgroundColor: "#ba191c", // block color
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8, // rounded corners
   },
 });

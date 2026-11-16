@@ -11,10 +11,41 @@ html, body, #root {
   height: 100%;
   overflow-y: auto;
   background-color: #e6e6e9;
+  scrollbar-color: #b0b4ba #e6e6e9;
+}
+
+* {
+  scrollbar-color: #b0b4ba #e6e6e9;
+}
+
+*::-webkit-scrollbar {
+  width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #e6e6e9;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #b0b4ba;
+  border-radius: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
   html, body, #root {
     background-color: #000000;
+    scrollbar-color: #2e3135 #000000;
+  }
+
+  * {
+    scrollbar-color: #2e3135 #000000;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #000000;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: #2e3135;
   }
 }
