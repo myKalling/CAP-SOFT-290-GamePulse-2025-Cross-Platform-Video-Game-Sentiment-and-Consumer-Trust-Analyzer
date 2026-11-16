@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
+import ReviewInput from '@/constants/theme-user-review-input';
 
 const FREEITEMS = [
   { id: 1, name: ' Where Winds Meet' },
