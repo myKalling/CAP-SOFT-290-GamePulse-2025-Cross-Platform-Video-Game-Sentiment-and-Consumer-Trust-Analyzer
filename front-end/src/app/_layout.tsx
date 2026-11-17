@@ -1,33 +1,57 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme, View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { BurgerMenu } from '@/components/burger-menu';
 import { ExternalLink } from '@/components/external-link';
+import { Colors } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { AuthProvider } from '../../authorization/authorization-login';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const theme = useTheme();
+  const navigationTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: Colors.tabs.background,
+      background: theme.background,
+      card: theme.background,
+      text: theme.text,
+    },
+  };
+
   return (
     <AuthProvider>
-      <ThemeProvider value={DefaultTheme}>
-        <View style={styles.container}>
-          <AnimatedSplashOverlay />
-          <AppTabs />
+      <GestureHandlerRootView style={styles.container}>
+        <ThemeProvider value={navigationTheme}>
+          <Stack
+            screenOptions={{
+              headerShown: true,
+              headerStyle: { backgroundColor: theme.background },
+              headerTintColor: theme.text,
+              headerShadowVisible: false,
+              headerLeft: () => <BurgerMenu />,
+            }}>
+            <Stack.Screen name="index" options={{ title: 'Home Page' }} />
+            <Stack.Screen name="about" options={{ title: 'About' }} />
+            <Stack.Screen name="account" options={{ title: 'Account' }} />
+            <Stack.Screen name="games" options={{ title: 'Top 20 Games' }} />
+            <Stack.Screen name="credits" options={{ title: 'Credits' }} />
+          </Stack>
           <View style={styles.footer}>
-            <Text style={styles.footerText}>© 2026 GamePulse</Text>
             <ExternalLink
               href="https://github.com/myKalling/CAP-SOFT-290-GamePulse-2025-Cross-Platform-Video-Game-Sentiment-and-Consumer-Trust-Analyzer"
               style={styles.footerText}>
               Shared Github
             </ExternalLink>
+            <Text style={styles.footerText}>© 2026 GamePulse</Text>
           </View>
-          
-        </View>
-      </ThemeProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
     </AuthProvider>
   );
 }

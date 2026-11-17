@@ -16,12 +16,14 @@ import EmailLink from '@/components/themed-email-link';
 
 export default function AboutScreen() {
   return (
-    <ThemedView style={[styles.container, {flex: 1}]}>
+    <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled>
+          <View style={styles.contentColumn}>
 
         <View style={styles.titleRow}>
                   <ThemedText type="title" style={[styles.title, { color: '#161a1d' }]}>
@@ -92,6 +94,7 @@ export default function AboutScreen() {
               </ThemedView>
             
         </ThemedView>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -101,26 +104,30 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    minHeight: 0,
   },
   safeArea: {
     flex: 1,
-    alignItems: 'center',
-    maxWidth: MaxContentWidth,
+    minHeight: 0,
     width: '100%',
   },
   scrollView: {
     flex: 1,
     width: '100%',
+    minHeight: 0,
+    ...(Platform.OS === 'web' ? { height: '100%' as const } : null),
   },
   scrollContent: {
     flexGrow: 1,
+    alignItems: 'center',
+    paddingBottom: BottomTabInset + Spacing.three,
+  },
+  contentColumn: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
   title: {
     textAlign: 'center',
