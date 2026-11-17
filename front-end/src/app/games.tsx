@@ -1,4 +1,4 @@
-import { StyleSheet, FlatList } from 'react-native';
+import { StyleSheet, View, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameCard from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useEffect, useState } from 'react';
 import { read } from '../api/fetch-wrapper'
+import { Link } from 'expo-router';
 
 export default function GamesScreen() {
   const [freeGames, setFreeGames] = useState<any[]>([]);
@@ -35,9 +36,28 @@ export default function GamesScreen() {
     <ThemedView style={[styles.container, { flex: 1 }]}>
       <SafeAreaView style={[styles.safeArea, { flex: 1 }]}>
 
-        <ThemedText type="title" style={styles.title}>
-          Top 20 Games of 2025
-        </ThemedText>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleRow}>
+            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+              Top
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: '#ba191b', marginRight: Spacing.two }]}>
+              20
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: 'black' }]}>
+              Games
+            </ThemedText>
+          </View>
+          <View style={styles.titleRow}>
+            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+              of
+            </ThemedText>
+            <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+              2025
+            </ThemedText>
+          </View>
+        </View>
+
 
         <ThemedView style={styles.columnsContainer}>
           <ThemedView style={styles.column}>
@@ -65,12 +85,26 @@ export default function GamesScreen() {
           </ThemedView>
         </ThemedView>
 
+        <ThemedView style={styles.footer}>
+          <ThemedView style={styles.link} >
+            <Link href="/credits" style={{ marginRight: 5, ...styles.coloredBlock }}>Credits</Link>
+          </ThemedView>
+        </ThemedView>
+
       </SafeAreaView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  footer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#888',
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -99,5 +133,29 @@ const styles = StyleSheet.create({
   },
   columnHeader: {
     textAlign: 'center',
+
+  },
+  titleContainer: {
+    alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  link: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: Spacing.three,
+    alignSelf: 'stretch',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.four,
+    borderRadius: Spacing.four,
+    textAlign: 'center',
+  },
+  coloredBlock: {
+    backgroundColor: "#ba191c", // block color
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8, // rounded corners
   },
 });

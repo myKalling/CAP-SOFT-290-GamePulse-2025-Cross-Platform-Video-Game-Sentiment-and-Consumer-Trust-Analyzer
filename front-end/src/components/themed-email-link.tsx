@@ -1,6 +1,6 @@
-import { openBrowserAsync } from "expo-web-browser";
+import * as Linking from "expo-linking";
 import React from "react";
-import { Platform, Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 
@@ -16,11 +16,7 @@ const EmailLink: React.FC<EmailLinkProps> = ({ recipient, subject = "Enter Subje
   const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   const handlePress = async () => {
-    if (Platform.OS === "web") {
-      window.location.href = mailtoLink;
-    } else {
-      await openBrowserAsync(mailtoLink);
-    }
+    await Linking.openURL(mailtoLink);
   };
 
   return (
@@ -32,6 +28,7 @@ const EmailLink: React.FC<EmailLinkProps> = ({ recipient, subject = "Enter Subje
 
 const styles = StyleSheet.create({
   link: {
+    textAlign: 'center',
     color: "#0078D4",
     textDecorationLine: "underline",
     fontWeight: "bold",

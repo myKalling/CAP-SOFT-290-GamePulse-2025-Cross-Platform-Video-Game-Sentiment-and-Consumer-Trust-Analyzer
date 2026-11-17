@@ -1,5 +1,5 @@
 import * as Device from 'expo-device';
-import { Platform, Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -16,72 +16,86 @@ import EmailLink from '@/components/themed-email-link';
 
 export default function AboutScreen() {
   return (
-    <ThemedView style={[styles.container, {flex: 1}]}>
-      <SafeAreaView style={[styles.safeArea, {flex: 1}]}>
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled>
+          <View style={styles.contentColumn}>
 
-        <ThemedText type="title" style={styles.title}>
-          About Us
-        </ThemedText>
+        <View style={styles.titleRow}>
+                  <ThemedText type="title" style={[styles.title, { color: '#161a1d' }]}>
+                    About 
+                  </ThemedText>
+                  {/* newline for spacing */}
+                  <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+                    Us
+                  </ThemedText>
+                </View>
         
-        <ThemedView style={styles.content}>
-          <ThemedText>
+        <ThemedView style={styles.borderColor}>
+          <ThemedText style={{ textAlign: 'center' }}>
             We are a student-lead team that created this website from start to finish as part of our capstone project.
           </ThemedText>
-          <ThemedView>
+          </ThemedView>
+
+          <ThemedView style={[styles.content, { alignItems: 'center' }]}>
             <ThemedText>
               Our Roles:
             </ThemedText>
             <ThemedList items={[
-              { item: 'Front-EndDevelopment -> Ava Ortiz' },
+              { item: 'Front-End Development -> Ava Ortiz' },
               { item: 'Database/ Data-Cleaning -> Ryan Michael' },
               { item: 'Ai Pipeline/ API-> Kenny Gallardo' }
             ]} />
           </ThemedView>
-        </ThemedView>
+        
 
-        <ThemedView style={styles.content}>
-          <ThemedText>
+        <ThemedView style={styles.borderColor}>
+          <ThemedText style={{ textAlign: 'center' }}>
             About Gamepulse
           </ThemedText>
-          <ThemedText>
-           I plan on keeping up with everyone's progress to get this site closer every week to being completed.
+          <ThemedText style={{ textAlign: 'center' }}>
+            GamePulse was created to find the top 20 games of 2025, both paid and unpaid to see if the games are "worth it".
+            This is determined through actual data that we collected. This includes:
+            reviews from IGDB, RAWG, and Xbox, written reviews by real players, 
+            their overall ratings for each game, personal ratings,
+            critic scores, and other relevant data.
           </ThemedText>
         </ThemedView>
 
-        <ThemedView>
-          <ThemedText>
-            Kenny's GitHub Repo
+        <ThemedView style={styles.content}>
+          <ThemedText style={{ textAlign: 'center' }}>
+            Github Link
           </ThemedText> 
-                  <ExternalLink href="https://github.com/myKalling" asChild>
-                    <Pressable>
-                      <ThemedText type="link">GitHub</ThemedText>
-                      <SymbolView
-                        name={{ ios: 'arrow.up.right.square', web: 'link' }}
-                        size={12}
-                      />
-                    </Pressable>
+                  <ExternalLink style={{ textAlign: 'center' }} href="https://github.com/myKalling/CAP-SOFT-290-GamePulse-2025-Cross-Platform-Video-Game-Sentiment-and-Consumer-Trust-Analyzer" >
+                      <ThemedText style={{ textDecorationLine: 'underline' }} type="link"> Shared GitHub</ThemedText>
                   </ExternalLink>
         </ThemedView>
-        <ThemedView style={styles.content}>
-          <ThemedText>Contact Us</ThemedText>
-            <ThemedText>For any inquiries or feedback, please reach out to us individually:</ThemedText>
+        <ThemedView style={styles.borderColor}>
+          <ThemedText style={{ textAlign: 'center' }}>Contact Us</ThemedText>
+            <ThemedText style={{ textAlign: 'center' }}>For any inquiries or feedback, please reach out to us individually:</ThemedText>
 
-              <ThemedView style={{ gap: Spacing.three }}>
-                <ThemedText>
+              <ThemedView style={[styles.borderColor, { gap: Spacing.three }]}>
+                <ThemedText style={{ textAlign: 'center' }}>
                   Ava Ortiz:
                 </ThemedText>
                 <EmailLink recipient="avaortiz1507@gmail.com" subject="Inquiry" body="Hello Ava," />
-                <ThemedText>
+                <ThemedText style={{ textAlign: 'center' }}>
                   Ryan Michael:
                 </ThemedText>
                 <EmailLink recipient="ryannitroo@gmail.com" subject="Inquiry" body="Hello Ryan," />
-                <ThemedText>
+                <ThemedText style={{ textAlign: 'center' }}>
                   Kenny Gallardo:
                 </ThemedText>
                 <EmailLink recipient="owner@mykalling.net" subject="Inquiry" body="Hello Kenny," />
               </ThemedView>
-
+            
         </ThemedView>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -90,16 +104,30 @@ export default function AboutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    minHeight: 0,
   },
   safeArea: {
     flex: 1,
+    minHeight: 0,
+    width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+    minHeight: 0,
+    ...(Platform.OS === 'web' ? { height: '100%' as const } : null),
+  },
+  scrollContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingBottom: BottomTabInset + Spacing.three,
+  },
+  contentColumn: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
   },
   title: {
     textAlign: 'center',
@@ -110,5 +138,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.four,
     borderRadius: Spacing.four,
+  },
+  borderColor:{
+    textAlign: 'center',
+    gap: Spacing.three,
+    alignSelf: 'stretch',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.four,
+    borderRadius: Spacing.four,
+    backgroundColor: '#dedce4',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
