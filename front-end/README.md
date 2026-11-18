@@ -10,11 +10,23 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Configure the local GamePulse API URL
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Expo only exposes variables prefixed with `EXPO_PUBLIC_` to app code. The
+   default URL is for web development when the FastAPI backend is running on
+   the same computer. Update it if your backend uses a different address.
+
+3. Start the app
 
    ```bash
    npx expo start
    ```
+
+   Restart Expo after changing `.env` so the new value is included in the app.
 
 In the output, you'll find options to open the app in a
 

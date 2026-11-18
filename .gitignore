@@ -3,3 +3,4 @@
 
 # Visual Studio local cache (paths exceed the Windows limit)
 .vs/
+front-end/.env

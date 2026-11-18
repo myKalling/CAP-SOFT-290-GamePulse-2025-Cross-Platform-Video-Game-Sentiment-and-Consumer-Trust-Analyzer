@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database import get_connection
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/procedures", tags=["stored procedures"])
+router = APIRouter(tags=["stored procedures"])
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
 
 
@@ -53,11 +53,11 @@ def procedure_one(connection: pyodbc.Connection, sql: str, value: int) -> dict[s
         raise HTTPException(status_code=404, detail="Record not found")
     return rows[0]
 
-developers_router = APIRouter(prefix="/developers", tags=["developers"])
-games_router = APIRouter(prefix="/games", tags=["games"])
-platforms_router = APIRouter(prefix="/platforms", tags=["platforms"])
-genres_router = APIRouter(prefix="/genres", tags=["genres"])
-
+developers_router = APIRouter(tags=["developers"])
+games_router = APIRouter(tags=["games"])
+platforms_router = APIRouter(tags=["platforms"])
+genres_router = APIRouter(tags=["genres"])
+reviews_router = APIRouter(tags=["reviews"])
 
 @developers_router.get("/developers")
 def all_developers(connection: Connection) -> list[dict[str, Any]]:
@@ -101,12 +101,12 @@ def search_games(
     return execute_procedure(connection, "EXEC dbo.SearchGames @SearchTerm = ?", (search_term,))
 
 
-@games_router.get("/games/top/free")
+@games_router.get("/games/topfree")
 def top_free_games(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetTop10FreeGames")
 
 
-@games_router.get("/games/top/paid")
+@games_router.get("/games/toppaid")
 def top_paid_games(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetTop10PaidGames")
 
@@ -124,3 +124,10 @@ def game_reviews(game_id: int, connection: Connection) -> list[dict[str, Any]]:
 @reviews_router.get("/reviews/{review_id}")
 def review(review_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetReview @ReviewID = ?", review_id)
+
+
+router.include_router(developers_router)
+router.include_router(games_router)
+router.include_router(platforms_router)
+router.include_router(genres_router)
+router.include_router(reviews_router)
