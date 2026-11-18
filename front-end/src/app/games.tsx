@@ -1,6 +1,7 @@
 import { StyleSheet, View, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameCard from '@/components/gamecard';
+import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -9,8 +10,8 @@ import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
 
 export default function GamesScreen() {
-  const [freeGames, setFreeGames] = useState<any[]>([]);
-  const [paidGames, setPaidGames] = useState<any[]>([]);
+  const [freeGames, setFreeGames] = useState<Game[]>([]);
+  const [paidGames, setPaidGames] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,8 +19,8 @@ export default function GamesScreen() {
     const fetchTopGames = async () => {
       setLoading(true);
       try {
-        const freeGameData = await read("procedures/games/top/free");
-        const paidGameData = await read("procedures/games/top/paid");
+        const freeGameData = await read("games/topfree");
+        const paidGameData = await read("games/toppaid");
         setFreeGames(freeGameData);
         setPaidGames(paidGameData);
       } catch (err) {
@@ -66,7 +67,7 @@ export default function GamesScreen() {
             </ThemedText>
             <FlatList
               data={freeGames}
-              keyExtractor={(item) => item.toString()}
+              keyExtractor={(item) => String(item.GameID)}
               renderItem={({ item }) => <GameCard game={item} />}
             />
             {/* <AddReviewButton /> */}
@@ -78,7 +79,7 @@ export default function GamesScreen() {
             </ThemedText>
             <FlatList
               data={paidGames}
-              keyExtractor={(item) => item.toString()}
+              keyExtractor={(item) => String(item.GameID)}
               renderItem={({ item }) => <GameCard game={item} />}
             />
             {/* <AddReviewButton /> */}

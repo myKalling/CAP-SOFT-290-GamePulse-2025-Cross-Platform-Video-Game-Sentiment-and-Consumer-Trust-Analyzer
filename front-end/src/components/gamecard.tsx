@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 
-type Game = {
+export type Game = {
     GameID: number;
     Title: string;
     Price: number | null;

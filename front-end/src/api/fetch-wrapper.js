@@ -1,8 +1,12 @@
-const BASE_API_URL = process.env.EXPO_PUBLIC_API_URL;
+const BASE_API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '') ?? '';
+
+function apiUrl(endpoint) {
+  return `${BASE_API_URL}/${endpoint.replace(/^\/+/, '')}`;
+}
 
 export async function create(endpoint, data) {
   console.log("Creating data at endpoint:", endpoint, "with data:", data);
-  const response = await fetch(`${BASE_API_URL}/${endpoint}`, {
+  const response = await fetch(apiUrl(endpoint), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -20,7 +24,7 @@ export async function create(endpoint, data) {
 }
 
 export async function read(endpoint) {
-  const response = await fetch(`${BASE_API_URL}/${endpoint}`);
+  const response = await fetch(apiUrl(endpoint));
 
   if (!response.ok) {
     return Promise.reject(
@@ -32,7 +36,7 @@ export async function read(endpoint) {
 }
 
 export async function update(endpoint, data) {
-  const response = await fetch(`${BASE_API_URL}/${endpoint}`, {
+  const response = await fetch(apiUrl(endpoint), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -50,7 +54,7 @@ export async function update(endpoint, data) {
 }
 
 export async function del(endpoint) {
-  const response = await fetch(`${BASE_API_URL}/${endpoint}`, {
+  const response = await fetch(apiUrl(endpoint), {
     method: 'DELETE',
   });
 
