@@ -1,18 +1,43 @@
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import FreeGamesList from '@/components/themed-free-games-list';
 import PaidGamesList from '@/components/themed-paid-games-list';
-import { AddReviewButton } from '../../authorization/add-review-button';
+import { useEffect, useState } from 'react';
+
+import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
 
 export default function GamesScreen() {
+  const [freeGames, setFreeGames] = useState<Game[]>([]);
+  const [paidGames, setPaidGames] = useState<Game[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopGames = async () => {
+      setLoading(true);
+      try {
+        const freeGameData = await read("games/topfree");
+        const paidGameData = await read("games/toppaid");
+        setFreeGames(freeGameData);
+        setPaidGames(paidGameData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopGames();
+  }, []);
+
   return (
-    <ThemedView style={[styles.container, {flex: 1}]}>
-      <SafeAreaView style={[styles.safeArea, {flex: 1}]}>
+    <ThemedView style={[styles.container, { flex: 1 }]}>
+      <SafeAreaView style={[styles.safeArea, { flex: 1 }]}>
 
         <View style={styles.titleContainer}>
           <View style={styles.titleRow}>
@@ -35,8 +60,8 @@ export default function GamesScreen() {
             </ThemedText>
           </View>
         </View>
-                
-    
+
+
         <ThemedView style={styles.columnsContainer}>
           <ThemedView style={styles.column}>
          
@@ -99,7 +124,7 @@ const styles = StyleSheet.create({
   },
   columnHeader: {
     textAlign: 'center',
-    
+
   },
   titleContainer: {
     alignItems: 'center',
@@ -108,7 +133,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-   link: {
+  link: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     gap: Spacing.three,
@@ -118,7 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.four,
     textAlign: 'center',
   },
-   coloredBlock: {
+  coloredBlock: {
     backgroundColor: "#ba191c", // block color
     paddingVertical: 10,
     paddingHorizontal: 20,

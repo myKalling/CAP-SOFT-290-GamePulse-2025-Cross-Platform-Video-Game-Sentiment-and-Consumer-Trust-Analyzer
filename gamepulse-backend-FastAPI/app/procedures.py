@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.database import get_connection
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/procedures", tags=["stored procedures"])
+router = APIRouter(tags=["stored procedures"])
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
 
 
@@ -53,69 +53,81 @@ def procedure_one(connection: pyodbc.Connection, sql: str, value: int) -> dict[s
         raise HTTPException(status_code=404, detail="Record not found")
     return rows[0]
 
+developers_router = APIRouter(tags=["developers"])
+games_router = APIRouter(tags=["games"])
+platforms_router = APIRouter(tags=["platforms"])
+genres_router = APIRouter(tags=["genres"])
+reviews_router = APIRouter(tags=["reviews"])
 
-@router.get("/developers")
+@developers_router.get("/developers")
 def all_developers(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetAllDevelopers")
 
 
-@router.get("/developers/{developer_id}")
+@developers_router.get("/developers/{developer_id}")
 def developer(developer_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetDevelopers @DeveloperID = ?", developer_id)
 
 
-@router.get("/platforms")
+@platforms_router.get("/platforms")
 def all_platforms(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetAllPlatforms")
 
 
-@router.get("/platforms/{platform_id}")
+@platforms_router.get("/platforms/{platform_id}")
 def platform(platform_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetPlatform @PlatformID = ?", platform_id)
 
 
-@router.get("/genres")
+@genres_router.get("/genres")
 def all_genres(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetAllGenres")
 
 
-@router.get("/genres/{genre_id}")
+@genres_router.get("/genres/{genre_id}")
 def genre(genre_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetGenre @GenreID = ?", genre_id)
 
 
-@router.get("/games")
+@games_router.get("/games")
 def all_games(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetALLGames")
 
 
-@router.get("/games/search")
+@games_router.get("/games/search")
 def search_games(
     connection: Connection, search_term: str = Query(default="", max_length=100)
 ) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.SearchGames @SearchTerm = ?", (search_term,))
 
 
-@router.get("/games/top/free")
+@games_router.get("/games/topfree")
 def top_free_games(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetTop10FreeGames")
 
 
-@router.get("/games/top/paid")
+@games_router.get("/games/toppaid")
 def top_paid_games(connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetTop10PaidGames")
 
 
-@router.get("/games/{game_id}")
+@games_router.get("/games/{game_id}")
 def game(game_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetGame @GameID = ?", game_id)
 
 
-@router.get("/games/{game_id}/reviews")
+@games_router.get("/games/{game_id}/reviews")
 def game_reviews(game_id: int, connection: Connection) -> list[dict[str, Any]]:
     return execute_procedure(connection, "EXEC dbo.GetGameReviews @GameID = ?", (game_id,))
 
 
-@router.get("/reviews/{review_id}")
+@reviews_router.get("/reviews/{review_id}")
 def review(review_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetReview @ReviewID = ?", review_id)
+
+
+router.include_router(developers_router)
+router.include_router(games_router)
+router.include_router(platforms_router)
+router.include_router(genres_router)
+router.include_router(reviews_router)

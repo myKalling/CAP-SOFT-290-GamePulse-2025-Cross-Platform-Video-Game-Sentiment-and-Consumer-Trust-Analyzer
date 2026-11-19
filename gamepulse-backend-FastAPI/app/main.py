@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import get_connection
-from app.procedures import router as procedures_router
+from app.procedures import execute_procedure, router as procedures_router
 from app.schemas import (
     Developer, Game, GameGenre, GamePlatform, GameReviewSummary, Platform,
     Review, SentimentRequest, SentimentResult,
@@ -33,6 +33,16 @@ app.add_middleware(
 app.include_router(procedures_router)
 
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
+
+
+@app.get("/games/topfree")
+def top_free_games(connection: Connection) -> list[dict[str, object]]:
+    return execute_procedure(connection, "EXEC dbo.GetTop10FreeGames")
+
+
+@app.get("/games/toppaid")
+def top_paid_games(connection: Connection) -> list[dict[str, object]]:
+    return execute_procedure(connection, "EXEC dbo.GetTop10PaidGames")
 
 SENTIMENT_CATEGORIES = {1: "Very Poor", 2: "Poor", 3: "Mid", 4: "Good", 5: "Very Good"}
 GAMING_LEXICON = {
