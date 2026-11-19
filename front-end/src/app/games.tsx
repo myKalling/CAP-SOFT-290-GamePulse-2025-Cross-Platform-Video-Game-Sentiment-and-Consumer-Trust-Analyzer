@@ -1,11 +1,13 @@
-import { StyleSheet, View, FlatList } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameCard from '@/components/gamecard';
 import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import FreeGamesList from '@/components/themed-free-games-list';
+import PaidGamesList from '@/components/themed-paid-games-list';
 import { useEffect, useState } from 'react';
+
 import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
 
@@ -62,35 +64,23 @@ export default function GamesScreen() {
 
         <ThemedView style={styles.columnsContainer}>
           <ThemedView style={styles.column}>
-            <ThemedText type="subtitle" style={styles.columnHeader}>
-              Free to Play
-            </ThemedText>
-            <FlatList
-              data={freeGames}
-              keyExtractor={(item) => String(item.GameID)}
-              renderItem={({ item }) => <GameCard game={item} />}
-            />
+         
+            <FreeGamesList />
             {/* <AddReviewButton /> */}
           </ThemedView>
 
           <ThemedView style={styles.column}>
-            <ThemedText type="subtitle" style={styles.columnHeader}>
-              Pay to Play
-            </ThemedText>
-            <FlatList
-              data={paidGames}
-              keyExtractor={(item) => String(item.GameID)}
-              renderItem={({ item }) => <GameCard game={item} />}
-            />
+            
+            <PaidGamesList />
             {/* <AddReviewButton /> */}
           </ThemedView>
         </ThemedView>
 
-        <ThemedView style={styles.footer}>
-          <ThemedView style={styles.link} >
+        <View style={styles.footer}>
+          <View style={styles.link} >
             <Link href="/credits" style={{ marginRight: 5, ...styles.coloredBlock }}>Credits</Link>
-          </ThemedView>
-        </ThemedView>
+          </View>
+        </View>
 
       </SafeAreaView>
     </ThemedView>
