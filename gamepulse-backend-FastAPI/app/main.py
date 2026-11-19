@@ -31,7 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(procedures_router)
-
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
 
 
