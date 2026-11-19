@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { useColorScheme } from 'react-native';
+import Animated, { FadeInUp, FadeOutDown, ReduceMotion } from 'react-native-reanimated';
+import { Platform, useColorScheme, StyleSheet, useWindowDimensions } from 'react-native';
 import { FlatList, Pressable, Text, View } from 'react-native';
+import { Colors } from '@/constants/theme';
+
 
 import ReviewInput from '@/constants/theme-user-review-input';
 
@@ -19,24 +22,100 @@ const FREEITEMS = [
 
 export default function FreeGamesList() {
   const [selected, setSelected] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   const colorScheme = useColorScheme();
-  const ink = { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' };
+  const ink = {color: colorScheme === 'dark' ? '#FFFFFF' : '#000000',};
+  const { width } = useWindowDimensions();
+  const fontSize = width < 768 ? 14 : 24;
 
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <FlatList
-        data={FREEITEMS}
-        keyExtractor={item => String(item.id)}
-        renderItem={({ item }) => (
-          <View>
-            <Pressable onPress={() => setSelected(item.name)}>
-              <Text style={ink}>{item.name}</Text>
-            </Pressable>
-            <ReviewInput gameName={item.name} />
-          </View>
+      <View style={[styles.container, { flexDirection: Platform.OS === 'ios' ? 'row' : 'column' }]}>
+        <Pressable
+          style={styles.button}
+          onPress={() => setIsOpen((prev) => !prev)}
+        >
+          
+            <Text style={[styles.buttonText, { fontSize }]}>
+              Free to Play 
+            </Text>
+          
+        </Pressable>
+  
+        {isOpen && (
+          <Animated.View
+            entering={FadeInUp.duration(220).reduceMotion(ReduceMotion.Never)}
+            style={styles.dropdown}>
+            {FREEITEMS.map((item) => (
+              <Pressable
+                key={item.id}
+                style={styles.item}
+                onPress={() => {
+                  setSelected(item.name);
+                  setIsOpen(false);
+                }}
+              >
+                <Text style={styles.itemText}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+         )}
+      
+        {!isOpen && selected && (
+          <>
+            <Text style={[styles.selectedText, ink]}>
+              {selected}
+            </Text>
+            <ReviewInput gameName={selected} />
+          </>
         )}
-      />
-      {selected != null && <Text style={ink}>{`Selected: ${selected}`}</Text>}
-    </View>
-  );
-}
+        
+      </View>
+    );
+  }
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 20,
+      
+    },
+  
+    button: {
+      backgroundColor: Colors.tabs.background,
+      padding: 10,
+      borderRadius: 8,
+    },
+  
+    buttonText: {
+      color: Colors.tabs.text,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+  
+    dropdown: {
+      marginTop: 5,
+      borderRadius: 8,
+      backgroundColor:'#d8d8da'
+    },
+  
+    item: {
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor:'#e6e6e9',
+    },
+  
+    itemText: {
+      fontSize: 16,
+      color: Colors.tabs.text,
+    },
+  
+    selectedText: {
+      marginTop: 20,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+  });
+  

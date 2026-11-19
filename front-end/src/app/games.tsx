@@ -1,13 +1,15 @@
 import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GameCard from '@/components/gamecard';
 import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import FreeGamesList from '@/components/themed-free-games-list';
+import PaidGamesList from '@/components/themed-paid-games-list';
 import { useEffect, useState } from 'react';
 import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
+import GameCard from '@/components/gamecard';
 
 export default function GamesScreen() {
   const { width } = useWindowDimensions();
