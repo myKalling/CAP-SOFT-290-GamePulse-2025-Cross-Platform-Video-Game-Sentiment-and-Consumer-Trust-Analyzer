@@ -39,27 +39,23 @@ export default function GamesScreen() {
     
         <ThemedView style={styles.columnsContainer}>
           <ThemedView style={styles.column}>
-            <ThemedText type="subtitle" style={styles.columnHeader}>
-              Free to Play
-            </ThemedText>
+         
             <FreeGamesList />
             {/* <AddReviewButton /> */}
           </ThemedView>
 
           <ThemedView style={styles.column}>
-            <ThemedText type="subtitle" style={styles.columnHeader}>
-              Pay to Play
-            </ThemedText>
+            
             <PaidGamesList />
             {/* <AddReviewButton /> */}
           </ThemedView>
         </ThemedView>
 
-        <ThemedView style={styles.footer}>
-          <ThemedView style={styles.link} >
+        <View style={styles.footer}>
+          <View style={styles.link} >
             <Link href="/credits" style={{ marginRight: 5, ...styles.coloredBlock }}>Credits</Link>
-          </ThemedView>
-        </ThemedView>
+          </View>
+        </View>
 
       </SafeAreaView>
     </ThemedView>
