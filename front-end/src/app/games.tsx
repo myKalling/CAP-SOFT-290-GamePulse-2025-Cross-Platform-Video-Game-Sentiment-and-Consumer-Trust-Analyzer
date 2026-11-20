@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
@@ -7,11 +7,14 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import FreeGamesList from '@/components/themed-free-games-list';
 import PaidGamesList from '@/components/themed-paid-games-list';
 import { useEffect, useState } from 'react';
-
 import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
+import GameCard from '@/components/gamecard';
 
 export default function GamesScreen() {
+  const { width } = useWindowDimensions();
+  const isWideScreen = width >= 768;
+
   const [freeGames, setFreeGames] = useState<Game[]>([]);
   const [paidGames, setPaidGames] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,52 +39,72 @@ export default function GamesScreen() {
   }, []);
 
   return (
-    <ThemedView style={[styles.container, { flex: 1 }]}>
-      <SafeAreaView style={[styles.safeArea, { flex: 1 }]}>
+    <ThemedView style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.titleContainer}>
+            <View style={styles.titleRow}>
+              <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+                Top
+              </ThemedText>
+              <ThemedText type="title" style={[styles.title, { color: '#ba191b', marginRight: Spacing.two }]}>
+                20
+              </ThemedText>
+              <ThemedText type="title" style={[styles.title, { color: 'black' }]}>
+                Games
+              </ThemedText>
+            </View>
 
-        <View style={styles.titleContainer}>
-          <View style={styles.titleRow}>
-            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
-              Top
-            </ThemedText>
-            <ThemedText type="title" style={[styles.title, { color: '#ba191b', marginRight: Spacing.two }]}>
-              20
-            </ThemedText>
-            <ThemedText type="title" style={[styles.title, { color: 'black' }]}>
-              Games
-            </ThemedText>
+            <View style={styles.titleRow}>
+              <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
+                of
+              </ThemedText>
+              <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
+                2025
+              </ThemedText>
+            </View>
           </View>
-          <View style={styles.titleRow}>
-            <ThemedText type="title" style={[styles.title, { color: 'black', marginRight: Spacing.two }]}>
-              of
-            </ThemedText>
-            <ThemedText type="title" style={[styles.title, { color: '#ba191b' }]}>
-              2025
-            </ThemedText>
-          </View>
-        </View>
 
+          <ThemedView style={[
+            styles.columnsContainer,
+            { flexDirection: isWideScreen ? 'row' : 'column' },
+          ]}>
+            <ThemedView style={[styles.column, !isWideScreen && styles.mobileColumn]}>
+              <ThemedText type="subtitle" style={styles.columnHeader}>
+                Free to Play
+              </ThemedText>
 
-        <ThemedView style={styles.columnsContainer}>
-          <ThemedView style={styles.column}>
-         
-            <FreeGamesList />
-            {/* <AddReviewButton /> */}
+              {freeGames.map((game) => (
+                <GameCard key={game.GameID} game={game} />
+              ))}
+            </ThemedView>
+
+            <ThemedView style={[styles.column, !isWideScreen && styles.mobileColumn]}>
+              <ThemedText type="subtitle" style={styles.columnHeader}>
+                Pay to Play
+              </ThemedText>
+
+              {paidGames.map((game) => (
+                <GameCard key={game.GameID} game={game} />
+              ))}
+            </ThemedView>
           </ThemedView>
 
-          <ThemedView style={styles.column}>
-            
-            <PaidGamesList />
-            {/* <AddReviewButton /> */}
+          <ThemedView style={styles.footer}>
+            <ThemedView style={styles.link}>
+              <Link
+                href="/credits"
+                style={{ marginRight: 5, ...styles.coloredBlock }}
+              >
+                Credits
+              </Link>
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
 
-        <View style={styles.footer}>
-          <View style={styles.link} >
-            <Link href="/credits" style={{ marginRight: 5, ...styles.coloredBlock }}>Credits</Link>
-          </View>
-        </View>
-
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -98,33 +121,38 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
     flexDirection: 'row',
+    justifyContent: 'center',
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
+    maxWidth: 1200,
+    width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     alignItems: 'center',
     gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
     paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  title: {
-    textAlign: 'center',
   },
   columnsContainer: {
     flexDirection: 'row',
     alignSelf: 'stretch',
-    flex: 1,
     gap: Spacing.four,
   },
+
   column: {
     flex: 1,
     gap: Spacing.two,
   },
+  title: {
+    textAlign: 'center',
+  },
   columnHeader: {
     textAlign: 'center',
-
   },
   titleContainer: {
     alignItems: 'center',
@@ -148,5 +176,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8, // rounded corners
+  },
+  mobileColumn: {
+    flex: 1,
+    width: '100%',
   },
 });
