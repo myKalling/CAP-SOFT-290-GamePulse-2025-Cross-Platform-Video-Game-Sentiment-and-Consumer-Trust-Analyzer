@@ -7,6 +7,10 @@ export interface Permissions {
   canAddReview: boolean;
 }
 
+export async function storeToken(token: string) {
+  await AsyncStorage.setItem('token', token);
+}
+
 export const rolePermissions: Record<Role, Permissions> = {
   guest: { canAddReview: false },
   user: { canAddReview: true },
@@ -74,8 +78,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+const fallbackAuth: AuthContextType = {
+  role: 'guest',
+  username: null,
+  setRole: () => {},
+  isLoading: false,
+  storageError: null,
+  signIn: async (name: string) => {
+    await AsyncStorage.setItem('username', name);
+  },
+  signOut: async () => {
+    await AsyncStorage.removeItem('username');
+  },
+};
+
 export function useAuth() {
-  const auth = useContext(AuthContext);
-  if (!auth) throw new Error('useAuth must be used within AuthProvider');
-  return auth;
+  return useContext(AuthContext) ?? fallbackAuth;
 }
