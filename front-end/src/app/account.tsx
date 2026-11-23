@@ -7,17 +7,15 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { useAuth } from "../../authorization/authorization-login";
+import { useAuth } from "@/authorization/authorization-login";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { router } from "expo-router";
 
 
 export default function AccountScreen() {
   const { username, isLoading, storageError, signIn, signOut } = useAuth();
   const [accountName, setAccountName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,6 +29,7 @@ export default function AccountScreen() {
     setIsSubmitting(true);
     try {
       await signIn(name);
+      router.replace("/");
     } catch (storageError) {
       console.error("Unable to save the account:", storageError);
       setError("Unable to save your account. Please try again.");

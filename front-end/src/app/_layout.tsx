@@ -7,7 +7,7 @@ import { BurgerMenu } from '@/components/burger-menu';
 import { ExternalLink } from '@/components/external-link';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { AuthProvider } from '../../authorization/authorization-login';
+import { AuthProvider } from '@/authorization/authorization-login';
 
 SplashScreen.preventAutoHideAsync();
 
