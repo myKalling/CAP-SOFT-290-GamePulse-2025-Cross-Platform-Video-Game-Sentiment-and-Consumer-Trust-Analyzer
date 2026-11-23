@@ -4,8 +4,6 @@ import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import FreeGamesList from '@/components/themed-free-games-list';
-import PaidGamesList from '@/components/themed-paid-games-list';
 import { useEffect, useState } from 'react';
 import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
