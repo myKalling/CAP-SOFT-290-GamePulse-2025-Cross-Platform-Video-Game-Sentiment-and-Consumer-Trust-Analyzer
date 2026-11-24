@@ -22,6 +22,22 @@ backend, a SQL Server database backup, and a separate data and sentiment pipelin
 The setup script installs project dependencies only; it does **not** install
 Python, Node.js, SQL Server or ODBC, restore a database, or obtain credentials.
 
+### Install Node.js
+
+1. Download Node.js from the [official download page](https://nodejs.org/en/download).
+   Select Node.js 24.x, version 24.3 or newer, and follow the instructions for
+   your operating system. On Windows, run the Windows installer and keep npm
+   selected.
+2. Open a new terminal and verify the installation. On Windows PowerShell:
+
+   ```powershell
+   node --version
+   npm.cmd --version
+   ```
+
+   On macOS or Linux, use `npm --version` instead. If either command is not
+   found, restart your terminal and check that Node.js is on your PATH.
+
 ## Install
 
 Clone this repository and run the setup script from its root:
@@ -34,6 +50,17 @@ py -3.12 setup_gamepulse.py
 
 On macOS or Linux, use `python3 setup_gamepulse.py` instead of `py -3.12`.
 Select a compatible interpreter if `python3` is older than 3.11.
+
+To check Python, Node.js, and npm without changing files or installing packages:
+
+```powershell
+py -3.12 setup_gamepulse.py --check-only
+```
+
+After installing the backend dependencies and configuring its `.env`, add
+`--check-database` to also check the configured ODBC driver and attempt a
+SQL Server connection. This check is optional and is not needed for the AI
+pipeline. On macOS or Linux, use `python3` in these commands.
 
 The script creates or reuses separate virtual environments for the API and AI
 pipeline, installs their requirements, runs `npm ci` for the front end, and
@@ -77,11 +104,12 @@ cd gamepulse-backend-FastAPI
 
 ```powershell
 cd front-end
-npm run web -- --port 8081
+npm.cmd run web -- --port 8081
 ```
 
 On macOS or Linux, use `.venv/bin/python` in place of
-`.\.venv\Scripts\python.exe`; the Expo command is the same. Open
+`.\.venv\Scripts\python.exe` and `npm` in place of `npm.cmd`. Using `npm.cmd`
+on Windows avoids PowerShell execution-policy restrictions on `npm.ps1`. Open
 <http://localhost:8081/games>. API documentation is at
 <http://127.0.0.1:8000/docs>, and <http://127.0.0.1:8000/health/db> checks the
 database connection. Stop each process with Ctrl+C.
@@ -118,7 +146,8 @@ data, validation, and dataset usage restrictions.
 
 ## Checks and troubleshooting
 
-- Front end: from `front-end`, run `npm run lint` and `npx tsc --noEmit`.
+- Front end: from `front-end`, run `npm.cmd run lint` and `npx.cmd tsc --noEmit`
+  on Windows; use `npm` and `npx` on macOS/Linux.
 - API: from `gamepulse-backend-FastAPI`, run
   `.\.venv\Scripts\python.exe -m unittest discover -s tests -v` on Windows, or
   `.venv/bin/python -m unittest discover -s tests -v` on macOS/Linux.
