@@ -1,5 +1,4 @@
 import { View, Text, Image, StyleSheet, Pressable } from "react-native";
-import ReviewInput from "@/constants/theme-user-review-input";
 import { router } from "expo-router";
 
 export type Game = {
@@ -55,7 +54,6 @@ export default function GameCard({ game }: { game: Game }) {
                         Genres: {game.Genres}
                     </Text>
                 )}
-                <ReviewInput gameName={game.Title} />
             </View>
         </Pressable>
     );
