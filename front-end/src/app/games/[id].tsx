@@ -1,4 +1,5 @@
-import { StyleSheet, Image, SafeAreaView } from 'react-native';
+import { StyleSheet, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -7,12 +8,21 @@ import { Game } from '@/components/gamecard';
 import { useEffect, useState } from 'react';
 import { read } from '../../api/fetch-wrapper';
 
+export type Review = {
+    ReviewID: number;
+    GameID: number;
+    Review: string;
+    Sentiment: number;
+    ReviewType: string;
+};
+
 export default function GameDetailsScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [game, setGame] = useState<Game | null>(null);
-    const [gameReviews, setGameReviews] = useState<any[]>([]);
+    const [HighReviews, setHighReviews] = useState<Review[]>([]);
+    const [LowReviews, setLowReviews] = useState<Review[]>([]);
 
     useEffect(() => {
         const fetchGame = async () => {
@@ -21,7 +31,8 @@ export default function GameDetailsScreen() {
                 const gameData = await read(`games/${id}`);
                 const gameReviewsData = await read(`games/${id}/reviews`);
                 setGame(gameData);
-                setGameReviews(gameReviewsData);
+                setHighReviews(gameReviewsData.filter((review: Review) => review.ReviewType === 'high'));
+                setLowReviews(gameReviewsData.filter((review: Review) => review.ReviewType === 'low'));
             } catch (err) {
                 setError(err instanceof Error ? err.message : String(err));
             } finally {
@@ -66,22 +77,15 @@ export default function GameDetailsScreen() {
                 {game.ImageURL != null && (
                     <Image source={{ uri: game.ImageURL }} style={styles.coverImage} />
                 )}
-                {game.AverageSentiment != null && (
-                    <ThemedView
-                        style={[
-                            styles.sentimentBadge,
-                            game.ImageURL != null ? styles.sentimentOverlay : styles.sentimentInline,
-                        ]}
-                    >
+                <ThemedView style={styles.content}>
+                    <ThemedText type="subtitle">
+                        {game.Title}
+                    </ThemedText>
+                    {game.AverageSentiment != null && (
                         <ThemedText style={styles.sentimentText}>
                             Average Sentiment: {game.AverageSentiment.toFixed(2)}
                         </ThemedText>
-                    </ThemedView>
-                )}
-                <ThemedView style={styles.content}>
-                    <ThemedText style={styles.title} numberOfLines={1}>
-                        {game.Title}
-                    </ThemedText>
+                    )}
                     {game.Developers != null && (
                         <ThemedText style={styles.metaText} numberOfLines={1}>
                             Developers: <ThemedText style={styles.metaValue}>{game.Developers}</ThemedText>
@@ -102,6 +106,23 @@ export default function GameDetailsScreen() {
                     )}
                     <ReviewInput gameName={game.Title} />
                 </ThemedView>
+                <ThemedView style={styles.reviewsContainer}>
+                    <ThemedText type="subtitle" style={styles.reviewsHeader}>
+                        Reviews
+                    </ThemedText>
+                    <ThemedText type="subtitle" style={styles.reviewsHeader}>
+                        High Reviews
+                    </ThemedText>
+                    {HighReviews.map((review) => (
+                        <ThemedText key={review.ReviewID}>{review.Review}</ThemedText>
+                    ))}
+                    <ThemedText type="subtitle" style={styles.reviewsHeader}>
+                        Low Reviews
+                    </ThemedText>
+                    {LowReviews.map((review) => (
+                        <ThemedText key={review.ReviewID}>{review.Review}</ThemedText>
+                    ))}
+                </ThemedView>
             </SafeAreaView>
         </ThemedView>
     );
@@ -118,54 +139,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
     },
-    card: {
-        backgroundColor: "#FFFFFF",
-        minHeight: 300,
-        borderRadius: 14,
-        overflow: "hidden",
-        marginVertical: 8,
-        marginHorizontal: 16,
-        borderWidth: 1,
-        borderColor: "#E5E5EA",
-        // iOS Shadow
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        // Android Shadow
-        elevation: 3,
-    },
-    hoveredEffect: {
-        transform: [{ scale: 1.03 }],
-        borderColor: "#BA191C",
-        shadowOpacity: 0.2,
-        elevation: 6,
-    },
     coverImage: {
         width: "100%",
         height: 160,
         resizeMode: "cover",
         backgroundColor: "#F2F2F7",
-    },
-    sentimentBadge: {
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: "#BA191C",
-    },
-    sentimentOverlay: {
-        position: "absolute",
-        top: 12,
-        right: 12,
-        zIndex: 1,
-    },
-    sentimentInline: {
-        alignSelf: "flex-start",
-        marginTop: 14,
-        marginLeft: 14,
-        marginBottom: -4,
     },
     sentimentText: {
         color: "#BA191C",
@@ -200,5 +178,11 @@ const styles = StyleSheet.create({
         color: "#555555",
         fontSize: 12,
         lineHeight: 16,
+    },
+    reviewsContainer: {
+        padding: 14,
+    },
+    reviewsHeader: {
+        marginBottom: 10,
     },
 });
