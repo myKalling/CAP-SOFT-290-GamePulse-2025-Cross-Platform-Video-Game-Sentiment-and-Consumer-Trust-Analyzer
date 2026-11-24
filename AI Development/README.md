@@ -10,6 +10,9 @@ Steam games by review volume, cleans their reviews, and gives every review an **
 - Internet access (the script calls public APIs).
 - A free RAWG API key; IGDB keys are optional (see step 3).
 
+The pipeline can be installed and run independently; it does not require the
+backend, Node.js, SQL Server, or an ODBC driver.
+
 ## 2. Set up the environment
 
 From the `AI Development` folder:
@@ -20,8 +23,8 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-`requirements.txt` installs `requests`, `pandas`, `python-dotenv` and `vaderSentiment` (the sentiment model; no
-separate model download is needed).
+`requirements.txt` also includes NumPy, scikit-learn, PyArrow and pytest for
+pipeline analysis and tests. VADER does not require a separate model download.
 
 ## 3. Get API keys and create `.env`
 

@@ -6,7 +6,9 @@ procedures. For complete project setup, see the [root guide](../README.md).
 
 ## 1. Requirements
 
-- Python 3.10+ and Microsoft SQL Server with the restored GamePulse database.
+- Python 3.10+ for the backend alone, and Microsoft SQL Server with the restored
+  GamePulse database. Full-project setup requires Python 3.11+ and recommends
+  Python 3.12; see the [root guide](../README.md).
 - Microsoft ODBC Driver 18 for SQL Server and a database account with read
   access and permission to execute the stored procedures.
 
