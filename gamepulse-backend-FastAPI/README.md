@@ -1,8 +1,8 @@
 # GamePulse FastAPI backend
 
-This API reads the local Microsoft SQL Server database restored from
+This API reads the Microsoft SQL Server database restored from
 `../Database/GamePulse.bak`. The backup contains data and the `dbo` stored
-procedures used by the `/procedures` endpoints.
+procedures. For complete project setup, see the [root guide](../README.md).
 
 ## 1. Requirements
 
@@ -74,8 +74,8 @@ database automatically.
 | `GET /procedures/genres/{genre_id}` | `dbo.GetGenre` |
 | `GET /procedures/games` | `dbo.GetALLGames` |
 | `GET /procedures/games/search?search_term=title` | `dbo.SearchGames` |
-| `GET /procedures/games/top/free` | `dbo.GetTop10FreeGames` |
-| `GET /procedures/games/top/paid` | `dbo.GetTop10PaidGames` |
+| `GET /procedures/games/topfree` | `dbo.GetTop10FreeGames` |
+| `GET /procedures/games/toppaid` | `dbo.GetTop10PaidGames` |
 | `GET /procedures/games/{game_id}` | `dbo.GetGame` |
 | `GET /procedures/games/{game_id}/reviews` | `dbo.GetGameReviews` |
 | `GET /procedures/reviews/{review_id}` | `dbo.GetReview` |
@@ -85,17 +85,19 @@ list routes return arrays, including an empty array when there are no rows.
 Individual lookup routes return 404 when no record exists. Search accepts up
 to 100 characters and defaults to an empty search term, as in the script.
 Database errors return a generic 500 response and are logged on the server.
+The same stored-procedure routes also remain available without `/procedures`
+for existing clients, including `/games/topfree` and `/games/toppaid`.
 The direct-query routes below also use the restored GamePulse schema.
 
 ## 4. Routes
 
 - `GET /health/db` — check the SQL Server connection.
-- `GET /developers` and `GET /platforms`
-- `GET /games?limit=100&offset=0&developer_id=1`
-- `GET /games/{game_id}`
+- `GET /queries/developers` and `GET /queries/platforms`
+- `GET /queries/games?limit=100&offset=0&developer_id=1`
+- `GET /queries/games/{game_id}`
 - `GET /games/{game_id}/summary` — review count, average stored sentiment, and positive (60–100), neutral (40–<60), and negative (<40) counts.
 - `GET /game-platforms?game_id=1&limit=100&offset=0`
-- `GET /genres?game_id=1&limit=100&offset=0`
+- `GET /queries/genres?game_id=1&limit=100&offset=0`
 - `GET /reviews?game_id=1&sentiment=75.5&limit=100&offset=0` — exact stored score, from 0 to 100.
 - `POST /sentiment` — infer sentiment from review text. Send JSON such as `{"text":"Great gameplay, but the game is buggy."}` to receive a 0–100 score, positive/negative shares, mixed flag, and five-band rating.
 

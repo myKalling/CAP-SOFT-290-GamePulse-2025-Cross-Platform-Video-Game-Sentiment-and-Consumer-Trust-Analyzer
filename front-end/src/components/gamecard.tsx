@@ -1,4 +1,5 @@
 import { View, Text, Image, StyleSheet } from "react-native";
+import ReviewInput from "@/constants/theme-user-review-input";
 
 export type Game = {
     GameID: number;
@@ -50,6 +51,7 @@ export default function GameCard({ game }: { game: Game }) {
                         Genres: {game.Genres}
                     </Text>
                 )}
+                <ReviewInput gameName={game.Title} />
             </View>
         </View>
     );

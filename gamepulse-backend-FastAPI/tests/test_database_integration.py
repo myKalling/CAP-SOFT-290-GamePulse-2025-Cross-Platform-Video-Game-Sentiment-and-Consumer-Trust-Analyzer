@@ -18,9 +18,9 @@ class DatabaseIntegrationTests(unittest.TestCase):
                 return response.json()
 
             self.assertEqual(get("/health/db")["status"], "connected")
-            developers = get("/developers")
-            platforms = get("/platforms")
-            games = get("/games?limit=1")
+            developers = get("/queries/developers")
+            platforms = get("/queries/platforms")
+            games = get("/queries/games?limit=1")
             genres = get("/procedures/genres")
             reviews = get("/reviews?limit=1")
             for name, rows in (("developers", developers), ("platforms", platforms),
@@ -33,15 +33,15 @@ class DatabaseIntegrationTests(unittest.TestCase):
             genre_id = genres[0]["GenreID"]
             review_id = reviews[0]["ReviewID"]
 
-            self.assertEqual(get(f"/games/{game_id}")["GameID"], game_id)
+            self.assertEqual(get(f"/queries/games/{game_id}")["GameID"], game_id)
             self.assertEqual(get(f"/games/{game_id}/summary")["GameID"], game_id)
-            for path in (f"/games?developer_id={developer_id}",
+            for path in (f"/queries/games?developer_id={developer_id}",
                          f"/game-platforms?game_id={game_id}",
-                         f"/genres?game_id={game_id}",
+                         f"/queries/genres?game_id={game_id}",
                          f"/reviews?game_id={game_id}&sentiment=50",
                          "/procedures/developers", "/procedures/platforms",
                          "/procedures/games", "/procedures/games/search?search_term=game",
-                         "/procedures/games/top/free", "/procedures/games/top/paid",
+                         "/procedures/games/topfree", "/procedures/games/toppaid",
                          f"/procedures/games/{game_id}/reviews"):
                 self.assertIsInstance(get(path), list)
             for path, key, value in (

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useColorScheme } from 'react-native';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, useColorScheme, View } from 'react-native';
 
+import { Colors } from '@/constants/theme';
 import { usePermissions } from '@/hooks/use-permissions';
 
 export default function ReviewInput({ gameName }: { gameName: string }) {
@@ -10,7 +10,7 @@ export default function ReviewInput({ gameName }: { gameName: string }) {
   const [error, setError] = useState<string>('');
   const { canAddReview } = usePermissions();
   const colorScheme = useColorScheme();
-  const ink = { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' };
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   const submitReview = (): void => {
     const text = draft.trim();
@@ -19,34 +19,75 @@ export default function ReviewInput({ gameName }: { gameName: string }) {
       return;
     }
     setError('');
-    setReviews([...reviews, text]);
+    setReviews((previous) => [...previous, text]);
     setDraft('');
   };
 
   return (
-    <View style={{ marginBottom: 8 }}>
+    <View style={[styles.container, { backgroundColor: colors.backgroundElement }]}>
+      <Text style={[styles.notice, { color: colors.textSecondary }]}>
+        Reviews are temporary and are not saved.
+      </Text>
       {reviews.map((review, index) => (
-        <Text key={index} style={ink}>{`• ${review}`}</Text>
+        <Text key={index} style={[styles.review, { color: colors.text }]}>{`• ${review}`}</Text>
       ))}
 
       {canAddReview ? (
         <View>
           <TextInput
-            style={[ink, { borderWidth: 1, padding: 6 }]}
+            style={[styles.input, { color: colors.text, borderColor: colors.textSecondary }]}
             value={draft}
             onChangeText={setDraft}
             placeholder={`Review ${gameName}`}
+            placeholderTextColor={colors.textSecondary}
+            accessibilityLabel={`Review ${gameName}`}
+            multiline
           />
-          <Pressable onPress={submitReview}>
-            <Text style={ink}>Add Review</Text>
+          <Pressable style={styles.button} onPress={submitReview} accessibilityRole="button">
+            <Text style={styles.buttonText}>Add Review</Text>
           </Pressable>
-          <Text style={ink}>{error}</Text>
+          {error ? <Text style={[styles.error, { color: colors.text }]}>{error}</Text> : null}
         </View>
       ) : (
-        <Text style={{ color: 'gray' }}>Sign in to add a review.</Text>
+        <Text style={{ color: colors.textSecondary }}>Sign in to add a review.</Text>
       )}
     </View>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 8,
+  },
+  notice: {
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  review: {
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: 8,
+    minHeight: 44,
+  },
+  button: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.tabs.background,
+    borderRadius: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  error: {
+    marginTop: 8,
+  },
+});
  

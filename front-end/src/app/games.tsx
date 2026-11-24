@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Game } from '@/components/gamecard';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useEffect, useState } from 'react';
 import { read } from '../api/fetch-wrapper'
 import { Link } from 'expo-router';
@@ -42,6 +42,7 @@ export default function GamesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.titleContainer}>
             <View style={styles.titleRow}>
@@ -65,6 +66,9 @@ export default function GamesScreen() {
               </ThemedText>
             </View>
           </View>
+
+          {loading && <ThemedText>Loading games...</ThemedText>}
+          {error && <ThemedText>Unable to load games: {error}</ThemedText>}
 
           <ThemedView style={[
             styles.columnsContainer,

@@ -1,16 +1,11 @@
-import * as Device from 'expo-device';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import ThemedList from '@/components/themed-list';
 import { ExternalLink } from '@/components/external-link';
-import { SymbolView } from 'expo-symbols';
 import EmailLink from '@/components/themed-email-link';
 
 
@@ -58,7 +53,7 @@ export default function AboutScreen() {
             About Gamepulse
           </ThemedText>
           <ThemedText style={{ textAlign: 'center' }}>
-            GamePulse was created to find the top 20 games of 2025, both paid and unpaid to see if the games are "worth it".
+            GamePulse was created to find the top 20 games of 2025, both paid and unpaid to see if the games are &quot;worth it&quot;.
             This is determined through actual data that we collected. This includes:
             reviews from IGDB, RAWG, and Xbox, written reviews by real players, 
             their overall ratings for each game, personal ratings,
