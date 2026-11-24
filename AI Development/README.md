@@ -6,9 +6,9 @@ Steam games by review volume, cleans their reviews, and gives every review an **
 
 ## 1. Requirements
 
-- Windows, macOS or Linux with **Python 3.10+** (tested on 3.12). Download from <https://www.python.org/downloads/>.
+- Windows, macOS or Linux with **Python 3.11+** (tested on 3.12). Download from <https://www.python.org/downloads/>.
 - Internet access (the script calls public APIs).
-- Free API keys (see step 3).
+- A free RAWG API key; IGDB keys are optional (see step 3).
 
 ## 2. Set up the environment
 
@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` (same folder as the script) and fill in:
 | Variable | Where to get it |
 |---|---|
 | `RAWG_API_KEY` | Free key at <https://rawg.io/apidocs> |
-| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Register an app at <https://dev.twitch.tv/console> (needs Twitch 2FA), then copy the Client ID and generate a Client Secret |
+| `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` | Optional: register an app at <https://dev.twitch.tv/console> (needs Twitch 2FA), then copy the Client ID and generate a Client Secret |
 
 Never commit `.env` (it is git-ignored). Steam requires no key.
 

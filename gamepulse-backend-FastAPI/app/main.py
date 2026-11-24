@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import get_connection
-from app.procedures import execute_procedure, router as procedures_router
+from app.procedures import router as procedures_router
 from app.schemas import (
     Developer, Game, GameGenre, GamePlatform, GameReviewSummary, Platform,
     Review, SentimentRequest, SentimentResult,
@@ -31,18 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(procedures_router)
-
+app.include_router(procedures_router, prefix="/procedures")
 Connection = Annotated[pyodbc.Connection, Depends(get_connection)]
 
-
-@app.get("/games/topfree")
-def top_free_games(connection: Connection) -> list[dict[str, object]]:
-    return execute_procedure(connection, "EXEC dbo.GetTop10FreeGames")
-
-
-@app.get("/games/toppaid")
-def top_paid_games(connection: Connection) -> list[dict[str, object]]:
-    return execute_procedure(connection, "EXEC dbo.GetTop10PaidGames")
 
 SENTIMENT_CATEGORIES = {1: "Very Poor", 2: "Poor", 3: "Mid", 4: "Good", 5: "Very Good"}
 GAMING_LEXICON = {
@@ -129,7 +120,7 @@ def database_health(connection: Connection) -> dict[str, str]:
     return {"status": "connected", "database": result["database_name"]}
 
 
-@app.get("/developers", response_model=list[Developer])
+@app.get("/queries/developers", response_model=list[Developer])
 def list_developers(connection: Connection) -> list[dict]:
     return fetch_all(
         connection,
@@ -137,7 +128,7 @@ def list_developers(connection: Connection) -> list[dict]:
     )
 
 
-@app.get("/platforms", response_model=list[Platform])
+@app.get("/queries/platforms", response_model=list[Platform])
 def list_platforms(connection: Connection) -> list[dict]:
     return fetch_all(
         connection,
@@ -145,7 +136,7 @@ def list_platforms(connection: Connection) -> list[dict]:
     )
 
 
-@app.get("/games", response_model=list[Game])
+@app.get("/queries/games", response_model=list[Game])
 def list_games(
     connection: Connection,
     limit: int = Query(default=100, ge=1, le=500),
@@ -167,7 +158,7 @@ def list_games(
     return fetch_all(connection, sql, (*params, offset, limit))
 
 
-@app.get("/games/{game_id}", response_model=Game)
+@app.get("/queries/games/{game_id}", response_model=Game)
 def get_game(game_id: int, connection: Connection) -> dict:
     game = fetch_one(
         connection,
@@ -230,7 +221,7 @@ def list_game_platforms(
     return fetch_all(connection, sql, (*params, offset, limit))
 
 
-@app.get("/genres", response_model=list[GameGenre])
+@app.get("/queries/genres", response_model=list[GameGenre])
 def list_game_genres(
     connection: Connection,
     game_id: int | None = Query(default=None, gt=0),
