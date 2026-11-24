@@ -24,7 +24,7 @@ class SetupTests(unittest.TestCase):
              patch.object(setup_gamepulse.subprocess, "run", return_value=result), \
              patch.object(setup_gamepulse, "copy_environment") as copy:
             with self.assertRaisesRegex(RuntimeError, "Unsupported Node.js"):
-                setup_gamepulse.main()
+                setup_gamepulse.main([])
             copy.assert_not_called()
 
     def test_install_failure_stops_setup(self):
@@ -35,8 +35,34 @@ class SetupTests(unittest.TestCase):
              patch.object(setup_gamepulse, "install_python", side_effect=subprocess.CalledProcessError(1, "pip")), \
              patch.object(setup_gamepulse, "run") as run:
             with self.assertRaises(subprocess.CalledProcessError):
-                setup_gamepulse.main()
+                setup_gamepulse.main([])
             run.assert_not_called()
+
+    def test_check_only_does_not_change_files_or_install(self):
+        with patch.object(setup_gamepulse, "preflight", return_value="npm"), \
+             patch.object(setup_gamepulse, "copy_environment") as copy, \
+             patch.object(setup_gamepulse, "install_python") as install, \
+             patch.object(setup_gamepulse, "check_database") as database, \
+             patch.object(setup_gamepulse, "run") as run:
+            setup_gamepulse.main(["--check-only"])
+            copy.assert_not_called()
+            install.assert_not_called()
+            database.assert_not_called()
+            run.assert_not_called()
+
+    def test_database_check_is_opt_in_and_runs_before_install(self):
+        with patch.object(setup_gamepulse, "preflight", return_value="npm"), \
+             patch.object(setup_gamepulse, "check_database", side_effect=RuntimeError("database unavailable")) as database, \
+             patch.object(setup_gamepulse, "copy_environment") as copy:
+            with self.assertRaisesRegex(RuntimeError, "database unavailable"):
+                setup_gamepulse.main(["--check-database"])
+            database.assert_called_once()
+            copy.assert_not_called()
+
+    def test_database_check_requires_backend_environment(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(RuntimeError, "Run setup first"):
+                setup_gamepulse.check_database(Path(temporary))
 
 
 if __name__ == "__main__":
