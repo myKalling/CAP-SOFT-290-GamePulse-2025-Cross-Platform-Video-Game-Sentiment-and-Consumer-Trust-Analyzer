@@ -4,11 +4,18 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
+Install Node.js and npm first; see the [Node.js installation instructions](../README.md#install-nodejs).
+The front end requires Node.js 24.3+ within 24.x; Node.js 22.13+ within 22.x
+and Node.js 26+ are also supported.
+
 1. Install dependencies
 
    ```bash
-   npm install
+   npm ci
    ```
+
+   `npm ci` uses the lockfile and replaces `node_modules`; stop any running
+   Expo server first. In Windows PowerShell, use `npm.cmd ci` instead.
 
 2. Configure the local GamePulse API URL
 
@@ -25,6 +32,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    ```bash
    npx expo start
    ```
+
+   In Windows PowerShell, use `npx.cmd expo start` to avoid execution-policy
+   restrictions on `npx.ps1`.
 
    Restart Expo after changing `.env` so the new value is included in the app.
 
@@ -45,6 +55,8 @@ When you're ready, run:
 npm run reset-project
 ```
 
+On Windows PowerShell, use `npm.cmd run reset-project`.
+
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
 ### Other setup steps
@@ -52,6 +64,8 @@ This command will move the starter code to the **app-example** directory and cre
 - To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
 - If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
 - Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+
+For these `npx` commands in Windows PowerShell, use `npx.cmd`.
 
 ## Learn more
 
