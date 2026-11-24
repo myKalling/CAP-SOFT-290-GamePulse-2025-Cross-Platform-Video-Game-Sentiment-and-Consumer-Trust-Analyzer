@@ -43,11 +43,11 @@ class APIEndpointTests(unittest.TestCase):
 
     def test_direct_list_routes_and_filters(self):
         cases = [
-            ("/developers", ("DeveloperID", "DeveloperName"), (1, "Studio"), ()),
-            ("/platforms", ("PlatformID", "PlatformName"), (1, "PC"), ()),
-            ("/games?developer_id=2&offset=3&limit=4", ("GameID", "Title", "Price"), (1, "Game", 0), (2, 3, 4)),
+            ("/queries/developers", ("DeveloperID", "DeveloperName"), (1, "Studio"), ()),
+            ("/queries/platforms", ("PlatformID", "PlatformName"), (1, "PC"), ()),
+            ("/queries/games?developer_id=2&offset=3&limit=4", ("GameID", "Title", "Price"), (1, "Game", 0), (2, 3, 4)),
             ("/game-platforms?game_id=2&offset=3&limit=4", ("GamePlatformsID", "GameID", "Title", "Price", "PlatformID", "PlatformName"), (1, 2, "Game", 0, 1, "PC"), (2, 3, 4)),
-            ("/genres?game_id=2&offset=3&limit=4", ("GameID", "GenreID", "Genre"), (2, 1, "Action"), (2, 3, 4)),
+            ("/queries/genres?game_id=2&offset=3&limit=4", ("GameID", "GenreID", "Genre"), (2, 1, "Action"), (2, 3, 4)),
             ("/reviews?game_id=2&sentiment=75.5&offset=3&limit=4", ("ReviewID", "GameID", "Title", "Review", "Sentiment", "ReviewDate", "UserID"), (1, 2, "Game", None, 75.5, None, None), (2, 75.5, 3, 4)),
         ]
         for path, columns, row, params in cases:
@@ -61,13 +61,13 @@ class APIEndpointTests(unittest.TestCase):
         self.assertEqual(self.cursor.close.call_count, len(cases))
 
     def test_validation_and_missing_game(self):
-        for path in ("/games?limit=501", "/games?offset=-1", "/games?developer_id=0",
-                     "/reviews?sentiment=101", "/genres?game_id=0"):
+        for path in ("/queries/games?limit=501", "/queries/games?offset=-1", "/queries/games?developer_id=0",
+                     "/reviews?sentiment=101", "/queries/genres?game_id=0"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 422)
         self.cursor.description = [("GameID",)]
         self.cursor.fetchall.return_value = []
-        self.assertEqual(self.client.get("/games/999").status_code, 404)
+        self.assertEqual(self.client.get("/queries/games/999").status_code, 404)
         self.assertEqual(self.client.get("/games/999/summary").status_code, 404)
 
     def test_health_and_summary(self):

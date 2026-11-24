@@ -1,8 +1,3 @@
-import { useState, type FormEvent } from "react";
-import "./ReviewForm.css";
-
-type Status = "idle" | "submitting" | "success" | "error";
-
 interface ReviewPayload {
   gameId: string;
   review: string;
@@ -16,25 +11,17 @@ interface ReviewPayload {
 }
 
 const ReviewForm = () => {
-  const [status, setStatus] = useState<Status>("idle");
-
-  const handleSubmit = (event: FormEvent) => {
-    event.preventDefault();
-    setStatus("submitting");
-    // Handle form submission logic here
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
-      {/* Form fields go here */}
-      <button type="submit">Submit Review</button>
-    </form>
+    <div>
+      <p>Review submission is not available yet.</p>
+      <button type="button" disabled>Submit Review</button>
+    </div>
   );
 };
 
 export default ReviewForm;
 
-async function submitReview(payload: ReviewPayload): Promise<void> {
+export async function submitReview(payload: ReviewPayload): Promise<void> {
   try {
     const response = await fetch("/api/reviews", {
       method: "POST",
@@ -51,5 +38,3 @@ async function submitReview(payload: ReviewPayload): Promise<void> {
     throw error;
   }
 }
-
-export default submitReview;

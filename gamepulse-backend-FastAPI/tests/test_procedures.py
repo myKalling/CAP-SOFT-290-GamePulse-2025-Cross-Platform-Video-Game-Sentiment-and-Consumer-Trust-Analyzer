@@ -33,8 +33,8 @@ class ProcedureEndpointTests(unittest.TestCase):
             ("/procedures/genres/7", "EXEC dbo.GetGenre @GenreID = ?", (7,), False),
             ("/procedures/games", "EXEC dbo.GetALLGames", (), True),
             ("/procedures/games/search?search_term=O%27Brien", "EXEC dbo.SearchGames @SearchTerm = ?", ("O'Brien",), True),
-            ("/procedures/games/top/free", "EXEC dbo.GetTop10FreeGames", (), True),
-            ("/procedures/games/top/paid", "EXEC dbo.GetTop10PaidGames", (), True),
+            ("/procedures/games/topfree", "EXEC dbo.GetTop10FreeGames", (), True),
+            ("/procedures/games/toppaid", "EXEC dbo.GetTop10PaidGames", (), True),
             ("/procedures/games/7", "EXEC dbo.GetGame @GameID = ?", (7,), False),
             ("/procedures/games/7/reviews", "EXEC dbo.GetGameReviews @GameID = ?", (7,), True),
             ("/procedures/reviews/7", "EXEC dbo.GetReview @ReviewID = ?", (7,), False),
@@ -46,6 +46,11 @@ class ProcedureEndpointTests(unittest.TestCase):
                 self.assertEqual(response.json(), [{"Result": 42}] if is_list else {"Result": 42})
                 self.cursor.execute.assert_called_with(sql, params)
         self.assertEqual(self.cursor.close.call_count, len(cases))
+
+    def test_existing_unprefixed_route_still_calls_the_procedure(self):
+        response = self.client.get("/games")
+        self.assertEqual(response.json(), [{"Result": 42}])
+        self.cursor.execute.assert_called_once_with("EXEC dbo.GetALLGames", ())
 
     def test_empty_and_missing_results(self):
         self.cursor.fetchall.return_value = []
