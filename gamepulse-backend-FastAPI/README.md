@@ -132,3 +132,7 @@ The integration test requires at least one developer, platform, game, genre,
 and review. It reads data but does not modify the database. Test requirements
 include `httpx` and, on Python 3.11+, `httpx2` for the FastAPI/Starlette test
 client across the supported dependency range.
+
+## IIS reverse proxy
+
+See [IIS_DEPLOYMENT.md](IIS_DEPLOYMENT.md) for installing URL Rewrite and ARR, configuring the IIS reverse proxy, and starting Uvicorn for local verification.
