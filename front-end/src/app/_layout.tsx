@@ -8,6 +8,7 @@ import { ExternalLink } from '@/components/external-link';
 import { Colors } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AuthProvider } from '@/authorization/authorization-login';
+import FilterAndSearch from '@/components/filter-and-search';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +36,7 @@ export default function RootLayout() {
               headerTintColor: theme.text,
               headerShadowVisible: false,
               headerLeft: () => <BurgerMenu />,
+              headerRight: () => <FilterAndSearch />
             }}>
             <Stack.Screen name="index" options={{ title: 'Home Page' }} />
             <Stack.Screen name="about" options={{ title: 'About' }} />
