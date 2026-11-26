@@ -120,6 +120,9 @@ remote access, and production deployment require appropriate network addresses,
 API binding, CORS, and security configuration; localhost on a phone refers to
 the phone itself.
 
+For Windows deployment behind IIS, including IIS, URL Rewrite, and ARR
+prerequisites, follow the [IIS deployment guide](gamepulse-backend-FastAPI/IIS_DEPLOYMENT.md).
+
 Existing stored-procedure routes retain their original paths; their
 `/procedures` aliases and the direct-query `/queries` routes are listed in the
 [API guide](gamepulse-backend-FastAPI/README.md).

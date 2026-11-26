@@ -10,13 +10,17 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 $appcmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
 if (-not (Test-Path -LiteralPath $appcmd)) { throw 'IIS appcmd.exe was not found. Enable IIS first.' }
+$webConfig = Join-Path $PSScriptRoot 'web.config'
+if (-not (Test-Path -LiteralPath $webConfig)) { throw 'The IIS web.config reverse-proxy rules are missing.' }
 $modules = & $appcmd list modules
 if ($LASTEXITCODE -ne 0) { throw 'Could not inspect IIS modules.' }
 if (($modules -join "`n") -notmatch 'RewriteModule') { throw 'Install IIS URL Rewrite before running this script.' }
 if (($modules -join "`n") -notmatch 'ApplicationRequestRouting') { throw 'Install IIS Application Request Routing (ARR) before running this script.' }
 $sites = & $appcmd list site
+if ($LASTEXITCODE -ne 0) { throw 'Could not inspect IIS sites.' }
 if (($sites -join "`n") -match "(?m)^SITE `"$([regex]::Escape($SiteName))`"") { throw "IIS site '$SiteName' already exists; inspect it in IIS Manager before changing it." }
 $pool = & $appcmd list apppool
+if ($LASTEXITCODE -ne 0) { throw 'Could not inspect IIS application pools.' }
 if (($pool -join "`n") -notmatch "(?m)^APPPOOL `"$([regex]::Escape($SiteName))`"") {
     & $appcmd add apppool "/name:$SiteName" '/managedRuntimeVersion:'
     if ($LASTEXITCODE -ne 0) { throw 'Failed to create the IIS application pool.' }

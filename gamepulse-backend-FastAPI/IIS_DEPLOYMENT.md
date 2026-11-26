@@ -2,12 +2,23 @@
 
 IIS serves as a reverse proxy; FastAPI itself runs as a separate Uvicorn process bound only to `127.0.0.1:8000`.
 
-## Install the IIS proxy modules
+## Prerequisites
 
-Install Microsoft IIS URL Rewrite 2.1 first, then Application Request Routing (ARR) 3.0 (x64). ARR depends on URL Rewrite:
+Run this on Windows with the IIS Web Server role enabled. Enable IIS Management
+Tools as well if you plan to configure the production hostname or HTTPS through
+IIS Manager. `setup-iis.ps1` requires an elevated PowerShell session and does
+not install or enable Windows/IIS features.
+
+Install Microsoft IIS URL Rewrite 2.1 first, then Application Request Routing
+(ARR) 3.0 (x64). ARR depends on URL Rewrite:
 
 - [URL Rewrite 2.1](https://www.iis.net/downloads/microsoft/url-rewrite)
 - [Application Request Routing 3.0](https://www.iis.net/downloads/microsoft/application-request-routing)
+
+Python 3.10 or newer, the Microsoft ODBC Driver 18 for SQL Server, and an
+accessible GamePulse database are also required. See the [backend setup
+guide](README.md) and [root requirements](../README.md#requirements) for API
+dependencies and database configuration.
 
 ## Prepare the API
 
