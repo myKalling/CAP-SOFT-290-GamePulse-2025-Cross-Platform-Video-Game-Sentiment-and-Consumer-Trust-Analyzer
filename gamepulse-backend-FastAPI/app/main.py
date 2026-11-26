@@ -1,7 +1,7 @@
 """GamePulse API backed by the restored SQL Server database."""
 
 import re
-from typing import Annotated
+from typing import Annotated, Union
 
 import pyodbc
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -99,8 +99,13 @@ def fetch_one(connection: pyodbc.Connection, sql: str, params: tuple = ()) -> di
 
 
 @app.get("/")
-def read_root() -> dict[str, str]:
-    return {"status": "GamePulse API is running", "database": "GamePulse"}
+def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: Union[str, None] = None):
+    return {"item_id": item_id, "q": q}
 
 
 @app.post("/sentiment", response_model=SentimentResult)
