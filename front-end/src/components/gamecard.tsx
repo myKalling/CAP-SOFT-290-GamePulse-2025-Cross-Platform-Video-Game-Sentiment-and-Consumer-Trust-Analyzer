@@ -1,5 +1,5 @@
-import { View, Text, Image, StyleSheet } from "react-native";
-import ReviewInput from "@/constants/theme-user-review-input";
+import { View, Text, Image, StyleSheet, Pressable } from "react-native";
+import { router } from "expo-router";
 
 export type Game = {
     GameID: number;
@@ -13,7 +13,10 @@ export type Game = {
 
 export default function GameCard({ game }: { game: Game }) {
     return (
-        <View style={styles.card}>
+        <Pressable
+            onPress={() => router.push(`/games/${game.GameID}` as never)}
+            style={({ hovered }) => [styles.card, hovered && styles.hoveredEffect]}
+        >
             {game.ImageURL != null && (
                 <Image source={{ uri: game.ImageURL }} style={styles.coverImage} />
             )}
@@ -51,9 +54,8 @@ export default function GameCard({ game }: { game: Game }) {
                         Genres: {game.Genres}
                     </Text>
                 )}
-                <ReviewInput gameName={game.Title} />
             </View>
-        </View>
+        </Pressable>
     );
 }
 
@@ -74,6 +76,12 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         // Android Shadow
         elevation: 3,
+    },
+    hoveredEffect: {
+        transform: [{ scale: 1.03 }],
+        borderColor: "#BA191C",
+        shadowOpacity: 0.2,
+        elevation: 6,
     },
     coverImage: {
         width: "100%",
