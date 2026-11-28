@@ -109,7 +109,10 @@ export default function GameDetailsScreen() {
                                 Genres: {game.Genres}
                             </ThemedText>
                         )}
-                        <ReviewInput gameName={game.Title} />
+                        <ReviewInput
+                            gameName={game.Title}
+                            gameID={game.GameID}
+                        />
                     </ThemedView>
                     <ThemedView style={styles.reviewsContainer}>
                         <ThemedText type="subtitle" style={styles.reviewsHeader}>
