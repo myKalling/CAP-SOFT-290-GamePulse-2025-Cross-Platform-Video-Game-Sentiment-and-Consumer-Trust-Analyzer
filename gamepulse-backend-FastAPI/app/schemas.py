@@ -25,6 +25,9 @@ class GameReviewSummary(BaseModel):
     NegativeReviews: int
     NeutralReviews: int
 
+class ReviewInput(BaseModel):
+    Review: str
+
 
 class APIModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -60,7 +63,7 @@ class Review(APIModel):
     GameID: int
     Title: str
     Review: str | None
-    Sentiment: float
+    Sentiment: float | None
     ReviewDate: date | None
     UserID: int | None
 
