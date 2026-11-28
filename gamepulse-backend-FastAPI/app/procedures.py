@@ -4,6 +4,8 @@ import logging
 from decimal import Decimal
 from typing import Annotated, Any
 
+from app.schemas import ReviewInput
+
 import pyodbc
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -46,6 +48,43 @@ def execute_procedure(
         if cursor is not None:
             cursor.close()
 
+def execute_non_query(
+    connection: pyodbc.Connection,
+    sql: str,
+    params: tuple = ()
+) -> dict[str, Any]:
+    cursor = None
+    try:
+        cursor = connection.cursor()
+        cursor.execute(sql, params)
+        while True:
+            if cursor.description is not None:
+                columns = [column[0] for column in cursor.description]
+                rows = cursor.fetchall()
+
+                if len(columns) == 1 and columns[0].lower() == "errormessage" and rows:
+                    logger.error("Stored procedure failed: %s", rows[0][0])
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Stored procedure execution failed"
+                    )
+            if not cursor.nextset():
+                break
+        connection.commit()
+        return {"success": True}
+    except HTTPException:
+        connection.rollback()
+        raise
+    except pyodbc.Error:
+        connection.rollback()
+        logger.exception("Stored procedure execution failed: %s", sql)
+        raise HTTPException(
+            status_code=500,
+            detail="Stored procedure execution failed"
+        ) from None
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 def procedure_one(connection: pyodbc.Connection, sql: str, value: int) -> dict[str, Any]:
     rows = execute_procedure(connection, sql, (value,))
@@ -124,6 +163,22 @@ def game_reviews(game_id: int, connection: Connection) -> list[dict[str, Any]]:
 @reviews_router.get("/reviews/{review_id}")
 def review(review_id: int, connection: Connection) -> dict[str, Any]:
     return procedure_one(connection, "EXEC dbo.GetReview @ReviewID = ?", review_id)
+
+@games_router.get("/games/{game_id}/reviews/user")
+def user_reviews(game_id: int, user_id: int, connection: Connection) -> list[dict[str, Any]]:
+    return execute_procedure(connection, "EXEC dbo.GetUserReviews @GameID = ?, @UserID = ?", (game_id, user_id))
+
+@games_router.post("/games/{game_id}/reviews")
+def create_review(game_id: int, user_id: int, review: ReviewInput, connection: Connection):
+    return execute_non_query(connection, "EXEC dbo.CreateReview @GameID = ?, @Review = ?, @UserID = ?", (game_id, review.Review, user_id))
+
+@reviews_router.put("/reviews/{review_id}")
+def update_review(review_id: int, user_id: int, review: ReviewInput, connection: Connection):
+    return execute_non_query(connection, "EXEC dbo.UpdateReview @ReviewID = ?, @Review = ?, @UserID = ?", (review_id, review.Review, user_id))
+
+@reviews_router.delete("/reviews/{review_id}")
+def delete_review(review_id: int, user_id: int, connection: Connection):
+    return execute_non_query(connection, "EXEC dbo.DeleteReview @ReviewID = ?, @UserID = ?", (review_id, user_id))
 
 
 router.include_router(developers_router)
